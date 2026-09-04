@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrangementslogg – Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <span class="event-name" data-i18n="admin_panel">Adminpanel</span>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="topbar-spacer"></div>
+    <div class="lang-theme-toggle">
+      <button class="ghost" onclick="Lang.set('no'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers();">NO</button>
+      <button class="ghost" onclick="Lang.set('en'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers();">EN</button>
+      <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
+    </div>
+    <div class="userinfo">
+      <strong id="user-fullname">–</strong><br>
+      <button class="ghost" onclick="Auth.logout()" data-i18n="logout">Logg ut</button>
+    </div>
+  </div>
+
+  <div style="padding:1rem; display:flex; flex-direction:column; gap:1rem; max-width:1100px; margin:0 auto; width:100%">
+    <div class="panel">
+      <div class="panel-head" data-i18n="events">Arrangementer</div>
+      <div class="panel-body">
+        <div id="event-form" class="grid-2" style="align-items:end; margin-bottom:1rem"></div>
+        <div id="event-list"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" data-i18n="users">Brukere</div>
+      <div class="panel-body">
+        <div id="user-form" class="grid-2" style="align-items:end; margin-bottom:1rem"></div>
+        <div id="user-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);overflow:auto;z-index:50"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/clock.js"></script>
+  <script>window.Log = window.Log || { CATEGORIES: [], CATEGORY_LABELS: {} };</script>
+  <script src="js/pdfExport.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    (async () => {
+      await Auth.requireSession();
+      if (!Auth.isAdmin()) { window.location.href = "app.html"; return; }
+      document.getElementById("user-fullname").textContent = Auth.profile.full_name;
+      Lang.apply();
+      Clock.start("clock");
+      // Full kategori-liste (samme som log.js) - trengs for PDF-eksport-oppsummeringen
+      window.Log = Object.assign(window.Log, {
+        CATEGORIES: ["Loggforing", "Utvisning", "Medisinsk hendelse", "Hendelse", "Prioritert hendelse"],
+      });
+      await Admin.init();
+    })();
+  </script>
+</body>
+</html>

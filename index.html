@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrangementslogg – Logg inn</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <span class="event-name">Arrangementslogg</span>
+    <div class="topbar-spacer"></div>
+    <div class="lang-theme-toggle">
+      <button class="ghost" onclick="Lang.set('no')">NO</button>
+      <button class="ghost" onclick="Lang.set('en')">EN</button>
+      <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
+    </div>
+  </div>
+
+  <div class="login-wrap">
+    <div class="panel login-box">
+      <h1 data-i18n="login_title">Logg inn</h1>
+      <div class="field">
+        <label data-i18n="username">Brukernavn</label>
+        <input id="username" autocomplete="username">
+      </div>
+      <div class="field">
+        <label data-i18n="password">Passord</label>
+        <input id="password" type="password" autocomplete="current-password">
+      </div>
+      <button class="primary" style="width:100%" onclick="doLogin()" data-i18n="login_btn">Logg inn</button>
+      <div id="login-error" class="error-text"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    Lang.apply();
+    document.getElementById("password").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+
+    async function doLogin() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const { error } = await Auth.login(username, password);
+      if (error) {
+        document.getElementById("login-error").textContent = Lang.t("login_error");
+        return;
+      }
+      await Auth.loadProfile();
+      window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
+    }
+
+    // Hvis allerede innlogget, send videre
+    (async () => {
+      const { data } = await sb.auth.getSession();
+      if (data.session) {
+        await Auth.loadProfile();
+        window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
+      }
+    })();
+  </script>
+</body>
+</html>

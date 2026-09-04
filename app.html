@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrangementslogg</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <span class="event-name" id="event-name">–</span>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="topbar-spacer"></div>
+    <div class="lang-theme-toggle">
+      <button class="ghost" onclick="Lang.set('no'); rerender()">NO</button>
+      <button class="ghost" onclick="Lang.set('en'); rerender()">EN</button>
+      <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
+    </div>
+    <div class="userinfo">
+      <strong id="user-fullname">–</strong><br>
+      <button class="ghost" onclick="Auth.logout()" data-i18n="logout">Logg ut</button>
+    </div>
+  </div>
+
+  <div class="mobile-readonly-notice" id="mobile-notice" data-i18n="mobile_readonly"></div>
+
+  <div class="app-layout">
+    <div class="stack">
+      <div class="panel desktop-only-write" id="entry-form-panel">
+        <div class="panel-body" id="entry-form"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head" data-i18n="filters">Filter og søk</div>
+        <div class="filter-bar" id="filter-bar"></div>
+      </div>
+
+      <div id="log-feed"></div>
+    </div>
+
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-head" data-i18n="dashboard">Dashboard</div>
+        <div class="panel-body" id="dashboard"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head" data-i18n="timers">Timere</div>
+        <div class="panel-body">
+          <div class="timer-list" id="timer-list"></div>
+          <div class="row" style="margin-top:.7rem">
+            <input id="new-timer-name" placeholder="Navn" style="flex:1">
+            <select id="new-timer-type">
+              <option value="stopwatch" data-i18n="timer_type_stopwatch">Stoppeklokke</option>
+              <option value="countdown" data-i18n="timer_type_countdown">Nedtelling</option>
+            </select>
+            <input id="new-timer-minutes" type="number" min="0" placeholder="min" style="width:70px">
+            <button onclick="addTimer()" data-i18n="new_timer">Ny timer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);overflow:auto;z-index:50"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/clock.js"></script>
+  <script src="js/timers.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/log.js"></script>
+  <script src="js/pdfExport.js"></script>
+  <script>
+    function rerender() {
+      Lang.apply();
+      Log._renderForm(); Log._renderFilters(); Log._renderEntries();
+    }
+    function addTimer() {
+      const name = document.getElementById("new-timer-name").value;
+      const type = document.getElementById("new-timer-type").value;
+      const minutes = parseFloat(document.getElementById("new-timer-minutes").value || "0");
+      Timers.add(name, type, minutes);
+      document.getElementById("new-timer-name").value = "";
+    }
+
+    (async () => {
+      await Auth.requireSession();
+      if (Auth.isAdmin()) { window.location.href = "admin.html"; return; }
+      if (!Auth.event) { document.body.innerHTML = "<p style='padding:2rem'>Ingen arrangement tilknyttet denne brukeren.</p>"; return; }
+      document.getElementById("event-name").textContent = Auth.event.name;
+      document.getElementById("user-fullname").textContent = Auth.profile.full_name;
+      Lang.apply();
+      Clock.start("clock");
+      Timers.init("timer-list");
+      await Log.init();
+      if (!Auth.canWrite()) document.getElementById("entry-form-panel").classList.add("hidden");
+    })();
+  </script>
+</body>
+</html>
