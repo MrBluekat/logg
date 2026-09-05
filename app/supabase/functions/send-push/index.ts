@@ -26,10 +26,11 @@ const supabase = createClient(
 );
 
 Deno.serve(async (req) => {
-  const { title, body, url, user_id } = await req.json();
+  const { title, body, url, user_id, event_id } = await req.json();
 
   let query = supabase.from("push_subscriptions").select("*");
   if (user_id) query = query.eq("user_id", user_id);
+  if (event_id) query = query.eq("event_id", event_id);
   const { data: subs, error } = await query;
 
   if (error) {

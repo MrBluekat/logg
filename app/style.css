@@ -477,3 +477,105 @@ nav.tab-bar button.active {
   font-size: 14px;
   z-index: 30;
 }
+
+/* ---------- Lagt til for reell datamodell (arrangement, kommentarer, kontakter) ---------- */
+.event-name-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.check-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 14px;
+}
+.check-grid label { display: flex; align-items: center; gap: 6px; color: var(--text); }
+
+.meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.meta-text { font-size: 12px; color: var(--text-muted); }
+
+.attachments-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.file-chip {
+  font-size: 12px;
+  color: var(--accent);
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.comment-list {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.comment-item { font-size: 13px; color: var(--text); }
+.comment-who { display: block; font-size: 11px; color: var(--text-muted); }
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.inline-form .comment-input {
+  flex: 1;
+  padding: 9px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+}
+.btn-small {
+  padding: 8px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn-close-case { margin-top: 8px; width: 100%; }
+
+.contact-row {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.contact-row a { color: var(--accent); text-decoration: none; }
+
+.divider-row {
+  padding: 14px 18px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.file-preview-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+#screen-event-picker {
+  flex: 1;
+  display: none;
+}
+#screen-event-picker:not(.hidden) { display: flex; flex-direction: column; }

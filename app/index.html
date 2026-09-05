@@ -18,7 +18,7 @@
 <section id="screen-login">
   <img src="icons/icon-192.png" class="login-mark" alt="" />
   <h1>Arrangementslogg</h1>
-  <p class="sub">Logg inn for å se logg og oppgaver</p>
+  <p class="sub">Logg inn for å se logg, oppgaver og kontakter</p>
 
   <form id="login-form">
     <div class="field">
@@ -34,11 +34,23 @@
   </form>
 </section>
 
+<!-- ============== VELG ARRANGEMENT (kun admin) ============== -->
+<section id="screen-event-picker" class="hidden">
+  <div style="padding:32px 28px">
+    <h1 style="font-size:20px;margin:0 0 4px">Velg arrangement</h1>
+    <p class="sub" style="margin:0 0 20px">Du er admin og kan velge hvilket arrangement du vil se</p>
+    <ul class="item-list" id="event-picker-list"></ul>
+  </div>
+</section>
+
 <!-- ===================== APP ===================== -->
 <section id="screen-app" class="hidden">
 
   <header class="app-header">
-    <h2 id="header-title">Logg</h2>
+    <div>
+      <h2 id="header-title">Logg</h2>
+      <div class="event-name-sub" id="event-name-label"></div>
+    </div>
     <span class="status-dot" id="status-dot">Tilkoblet</span>
   </header>
 
@@ -63,9 +75,16 @@
       <div class="empty-state hidden" id="oppgaver-empty">Ingen oppgaver akkurat nå.</div>
     </div>
 
+    <!-- KONTAKTER -->
+    <div class="tab-panel" id="tab-kontakter">
+      <div class="list-heading">Kontaktliste</div>
+      <ul class="item-list" id="kontakter-list"></ul>
+      <div class="empty-state hidden" id="kontakter-empty">Ingen kontakter lagt inn ennå.</div>
+    </div>
+
   </main>
 
-  <button class="fab" id="fab-new" title="Ny hendelse">+</button>
+  <button class="fab" id="fab-new" title="Ny">+</button>
 
   <nav class="tab-bar">
     <button class="tab-btn active" data-tab="logg">
@@ -76,48 +95,127 @@
       <span class="dot"></span>
       Oppgaver
     </button>
+    <button class="tab-btn" data-tab="kontakter">
+      <span class="dot"></span>
+      Kontakter
+    </button>
   </nav>
 </section>
 
-<!-- ===================== NY HENDELSE (sheet) ===================== -->
+<!-- ===================== NY LOGGFØRING (sheet) ===================== -->
 <div class="sheet-backdrop hidden" id="new-sheet">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <h3>Ny hendelse</h3>
+    <h3>Ny loggføring</h3>
     <form id="new-form">
       <div class="field">
-        <label for="new-kategori">Kategori</label>
-        <select id="new-kategori">
-          <option value="Medisinsk">Medisinsk</option>
-          <option value="Bråk">Bråk</option>
-          <option value="Tap/funn">Tap/funn</option>
-          <option value="Brann">Brann</option>
-          <option value="Teknisk">Teknisk</option>
-          <option value="Annet">Annet</option>
+        <label for="new-kind">Type</label>
+        <select id="new-kind">
+          <option value="info">Info (avsluttes med en gang)</option>
+          <option value="hendelse">Hendelse (pågår, kan oppdateres)</option>
         </select>
       </div>
       <div class="field">
-        <label for="new-alvorlighet">Alvorlighet</label>
-        <select id="new-alvorlighet">
-          <option value="lav">Lav</option>
-          <option value="middels" selected>Middels</option>
-          <option value="hoy">Høy</option>
+        <label for="new-kategori">Type hendelse</label>
+        <select id="new-kategori">
+          <option value="Loggforing">Loggføring</option>
+          <option value="Utvisning">Utvisning</option>
+          <option value="Medisinsk hendelse">Medisinsk hendelse</option>
+          <option value="Hendelse">Hendelse</option>
+          <option value="Prioritert hendelse">Prioritert hendelse</option>
+          <option value="Scene">Scene</option>
+          <option value="Vaer">Vær</option>
+          <option value="Publikumstall">Publikumstall</option>
         </select>
+      </div>
+      <div class="field">
+        <label for="new-lokasjon">Lokasjon (valgfritt)</label>
+        <input type="text" id="new-lokasjon" placeholder="F.eks. Hovedscene, Inngang A" />
+      </div>
+      <div class="field">
+        <label for="new-reporter">Meldt via (valgfritt)</label>
+        <input type="text" id="new-reporter" placeholder="Vekter / Frivillig / Politi / Annet" />
       </div>
       <div class="field">
         <label for="new-beskrivelse">Beskrivelse</label>
         <textarea id="new-beskrivelse" placeholder="Hva skjedde?" required></textarea>
       </div>
       <div class="field">
+        <label for="new-tiltak">Tiltak utført (valgfritt)</label>
+        <textarea id="new-tiltak" placeholder="Hva ble gjort?"></textarea>
+      </div>
+      <div class="field">
+        <label>Varslet/kontaktet</label>
+        <div class="check-grid">
+          <label><input type="checkbox" value="Politi" class="notify-cb"> Politi</label>
+          <label><input type="checkbox" value="AMK" class="notify-cb"> AMK</label>
+          <label><input type="checkbox" value="Brannvesenet" class="notify-cb"> Brannvesenet</label>
+          <label><input type="checkbox" value="Sikkerhetsleder" class="notify-cb"> Sikkerhetsleder</label>
+          <label><input type="checkbox" value="Krisegruppen" class="notify-cb"> Krisegruppen</label>
+        </div>
+      </div>
+      <div class="field">
         <label class="photo-input-label" for="new-photo">
-          📷 Legg til bilde (valgfritt)
+          📷 Legg til bilde/fil (valgfritt)
         </label>
-        <input type="file" id="new-photo" accept="image/*" capture="environment" class="hidden" />
-        <img id="photo-preview" alt="" />
+        <input type="file" id="new-photo" multiple class="hidden" />
+        <div id="photo-preview" class="file-preview-text"></div>
       </div>
       <div class="sheet-actions">
         <button type="button" class="btn-secondary" id="cancel-new">Avbryt</button>
-        <button type="submit" class="btn-primary" id="save-new">Lagre hendelse</button>
+        <button type="submit" class="btn-primary" id="save-new">Lagre loggføring</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== NY OPPGAVE (sheet) ===================== -->
+<div class="sheet-backdrop hidden" id="new-task-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Ny oppgave</h3>
+    <form id="new-task-form">
+      <div class="field">
+        <label for="task-beskrivelse">Beskrivelse</label>
+        <input type="text" id="task-beskrivelse" required />
+      </div>
+      <div class="field">
+        <label for="task-ansvarlig">Ansvarlig (valgfritt)</label>
+        <input type="text" id="task-ansvarlig" />
+      </div>
+      <div class="sheet-actions">
+        <button type="button" class="btn-secondary" id="cancel-new-task">Avbryt</button>
+        <button type="submit" class="btn-primary">Legg til oppgave</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== NY KONTAKT (sheet) ===================== -->
+<div class="sheet-backdrop hidden" id="new-contact-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Ny kontakt</h3>
+    <form id="new-contact-form">
+      <div class="field">
+        <label for="contact-navn">Navn</label>
+        <input type="text" id="contact-navn" required />
+      </div>
+      <div class="field">
+        <label for="contact-tlf">Telefonnummer</label>
+        <input type="text" id="contact-tlf" />
+      </div>
+      <div class="field">
+        <label for="contact-epost">E-post</label>
+        <input type="text" id="contact-epost" />
+      </div>
+      <div class="field">
+        <label for="contact-org">Organisasjon</label>
+        <input type="text" id="contact-org" />
+      </div>
+      <div class="sheet-actions">
+        <button type="button" class="btn-secondary" id="cancel-new-contact">Avbryt</button>
+        <button type="submit" class="btn-primary">Legg til kontakt</button>
       </div>
     </form>
   </div>
