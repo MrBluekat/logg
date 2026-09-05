@@ -46,13 +46,18 @@ supabase.auth.onAuthStateChange((event) => {
 function wireUpEvents() {
   el("login-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = el("login-email").value.trim();
+    const username = el("login-email").value.trim();
     const password = el("login-password").value;
     const btn = el("login-btn");
     const errorBox = el("login-error");
     errorBox.textContent = "";
     btn.disabled = true;
     btn.textContent = "Logger inn …";
+
+    // Bygg om brukernavn til e-post, samme mønster som hovedsiden bruker
+    const email = username.includes("@")
+      ? username
+      : `${username}@${CONFIG.LOGIN_EMAIL_DOMAIN}`;
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
