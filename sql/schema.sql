@@ -100,7 +100,7 @@ create table public.log_entries (
   event_id         uuid not null references public.events(id) on delete cascade,
   entry_kind       text not null check (entry_kind in ('info','hendelse')),
   category         text not null check (category in ('Loggforing','Utvisning','Medisinsk hendelse','Hendelse','Prioritert hendelse')),
-  location         text not null,
+  location         text,
   reporter_source  text,                          -- Vekter / Frivillig / Politi / Annet / fritekst
   description      text not null,
   action_taken     text,

@@ -74,10 +74,9 @@ window.Admin = {
 
   async archiveEvent(eventId, eventName) {
     if (!confirm(Lang.t("confirm_archive"))) return;
-    await PDFExport.exportEvent(eventId, eventName);
     await sb.from("events").delete().eq("id", eventId);
     await this.refreshEvents();
-    this.toast("Arrangement arkivert og eksportert");
+    this.toast("Arrangement arkivert");
   },
 
   _renderUserForm() {

@@ -145,6 +145,7 @@ window.Log = {
           <select id="in-category">${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
         <div class="field"><label>${Lang.t("location")} <button class="ghost" style="padding:.1rem .4rem" onclick="Log.manageLocations()">⚙</button></label>
           <select id="in-location" onchange="document.getElementById('in-location-custom').classList.toggle('hidden', this.value !== '__custom')">
+            <option value="">–</option>
             ${this.locations.map((l) => `<option value="${l.name}">${l.name}</option>`).join("")}
             <option value="__custom">${Lang.t("location_custom")}</option>
           </select>
@@ -169,8 +170,8 @@ window.Log = {
     let location = g("in-location");
     if (location === "__custom") location = g("in-location-custom").trim();
     const description = g("in-description").trim();
-    if (!location || !description) {
-      document.getElementById("form-error").textContent = "Lokasjon og beskrivelse må fylles ut.";
+    if (!description) {
+      document.getElementById("form-error").textContent = "Beskrivelse må fylles ut.";
       return;
     }
     const notified = Array.from(document.querySelectorAll(".notify-cb:checked")).map((c) => c.value);
@@ -178,7 +179,7 @@ window.Log = {
       event_id: Auth.event.id,
       entry_kind: kind,
       category: g("in-category"),
-      location,
+      location: location || null,
       reporter_source: g("in-reporter").trim() || null,
       description,
       action_taken: g("in-action").trim() || null,
@@ -301,7 +302,7 @@ window.Log = {
         <p class="desc">${e.description}</p>
         ${e.action_taken ? `<p class="small">${Lang.t("action_taken")}: ${e.action_taken}</p>` : ""}
         <div class="meta">
-          <span>${Lang.t("location")}: ${e.location}</span>
+          ${e.location ? `<span>${Lang.t("location")}: ${e.location}</span>` : ""}
           ${e.reporter_source ? `<span>${Lang.t("reporter_source")}: ${e.reporter_source}</span>` : ""}
           ${e.notified?.length ? `<span>${Lang.t("notified")}: ${e.notified.join(", ")}</span>` : ""}
           <span>${e.created_by_name}</span>

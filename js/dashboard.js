@@ -4,6 +4,19 @@ window.Dashboard = {
   _catChart: null,
   _timeChart: null,
   _notifiedChart: null,
+  prefs: JSON.parse(localStorage.getItem("al_dashboard_prefs") || "null") || {
+    showCategory: true, showNotified: true, showTimeline: true, chartType: "bar",
+  },
+
+  _savePrefs() {
+    localStorage.setItem("al_dashboard_prefs", JSON.stringify(this.prefs));
+  },
+
+  setPref(key, value) {
+    this.prefs[key] = value;
+    this._savePrefs();
+    this._renderInto();
+  },
 
   // Kalles av Log.refresh() hver gang data endres (også via sanntid) - oppdaterer
   // modalen live dersom den står åpen.
@@ -93,64 +106,95 @@ window.Dashboard = {
         <div class="stat-card"><div class="num mono">${ongoing}</div><div class="label">${Lang.t("ongoing")}</div></div>
       </div>
       <p class="small" style="margin:.6rem 0 1rem">${Lang.t("latest")}: <span class="mono">${latest}</span></p>
+
+      <div class="row" style="align-items:center; gap:1rem; padding:.6rem; border:1px solid var(--border); border-radius:6px; margin-bottom:1rem; flex-wrap:wrap">
+        <label style="display:flex; align-items:center; gap:.3rem; font-size:.85rem"><input type="checkbox" ${this.prefs.showCategory ? "checked" : ""} onchange="Dashboard.setPref('showCategory', this.checked)"> Hendelser per type</label>
+        <label style="display:flex; align-items:center; gap:.3rem; font-size:.85rem"><input type="checkbox" ${this.prefs.showNotified ? "checked" : ""} onchange="Dashboard.setPref('showNotified', this.checked)"> Varslinger per mottaker</label>
+        <label style="display:flex; align-items:center; gap:.3rem; font-size:.85rem"><input type="checkbox" ${this.prefs.showTimeline ? "checked" : ""} onchange="Dashboard.setPref('showTimeline', this.checked)"> Hendelser over tid</label>
+        <label style="display:flex; align-items:center; gap:.3rem; font-size:.85rem; margin-left:auto">Diagramtype:
+          <select onchange="Dashboard.setPref('chartType', this.value)" style="width:auto">
+            <option value="bar" ${this.prefs.chartType === "bar" ? "selected" : ""}>Søyle</option>
+            <option value="line" ${this.prefs.chartType === "line" ? "selected" : ""}>Linje</option>
+          </select>
+        </label>
+      </div>
+
       <div class="grid-2" style="gap:1.2rem">
-        <div><p class="small" style="margin-bottom:.3rem">Hendelser per type</p><canvas id="chart-category" height="200"></canvas></div>
-        <div><p class="small" style="margin-bottom:.3rem">Varslinger per mottaker</p><canvas id="chart-notified" height="200"></canvas></div>
+        ${this.prefs.showCategory ? `<div><p class="small" style="margin-bottom:.3rem">Hendelser per type</p><canvas id="chart-category" height="200"></canvas></div>` : ""}
+        ${this.prefs.showNotified ? `<div><p class="small" style="margin-bottom:.3rem">Varslinger per mottaker</p><canvas id="chart-notified" height="200"></canvas></div>` : ""}
       </div>
-      <div style="margin-top:1.2rem">
-        <p class="small" style="margin-bottom:.3rem">Hendelser over tid${Auth.event.active_from ? " (basert på arrangementets aktive periode)" : ""}</p>
-        <canvas id="chart-timeline" height="110"></canvas>
-      </div>
+      ${this.prefs.showTimeline ? `
+        <div style="margin-top:1.2rem">
+          <p class="small" style="margin-bottom:.3rem">Hendelser over tid${Auth.event.active_from ? " (basert på arrangementets aktive periode)" : ""}</p>
+          <canvas id="chart-timeline" height="110"></canvas>
+        </div>
+      ` : ""}
     `;
 
     const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     const gridColor = cssVar("--border");
     const textColor = cssVar("--text-muted");
+    const chartType = this.prefs.chartType;
+    const lineExtras = chartType === "line" ? { tension: 0.3, fill: true } : {};
 
-    if (this._catChart) this._catChart.destroy();
-    if (this._notifiedChart) this._notifiedChart.destroy();
-    if (this._timeChart) this._timeChart.destroy();
+    if (this._catChart) { this._catChart.destroy(); this._catChart = null; }
+    if (this._notifiedChart) { this._notifiedChart.destroy(); this._notifiedChart = null; }
+    if (this._timeChart) { this._timeChart.destroy(); this._timeChart = null; }
 
-    this._catChart = new Chart(document.getElementById("chart-category"), {
-      type: "bar",
-      data: {
-        labels: Log.CATEGORIES.map((c) => Log.CATEGORY_LABELS[c]),
-        datasets: [{ data: Log.CATEGORIES.map((c) => counts[c]), backgroundColor: this._chartColors }],
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: textColor, font: { size: 9 } }, grid: { display: false } },
-          y: { beginAtZero: true, ticks: { color: textColor, precision: 0 }, grid: { color: gridColor } },
+    if (this.prefs.showCategory) {
+      this._catChart = new Chart(document.getElementById("chart-category"), {
+        type: chartType,
+        data: {
+          labels: Log.CATEGORIES.map((c) => Log.CATEGORY_LABELS[c]),
+          datasets: [{
+            data: Log.CATEGORIES.map((c) => counts[c]),
+            backgroundColor: chartType === "line" ? cssVar("--accent") + "33" : this._chartColors,
+            borderColor: cssVar("--accent"), ...lineExtras,
+          }],
         },
-      },
-    });
-
-    this._notifiedChart = new Chart(document.getElementById("chart-notified"), {
-      type: "doughnut",
-      data: {
-        labels: Log.NOTIFY_OPTIONS,
-        datasets: [{ data: Log.NOTIFY_OPTIONS.map((n) => notifiedCounts[n]), backgroundColor: this._chartColors }],
-      },
-      options: {
-        plugins: { legend: { position: "bottom", labels: { color: textColor, font: { size: 9 }, boxWidth: 10 } } },
-      },
-    });
-
-    const timeline = this._buildTimeline(entries);
-    this._timeChart = new Chart(document.getElementById("chart-timeline"), {
-      type: "bar",
-      data: {
-        labels: timeline.labels,
-        datasets: [{ label: "Hendelser", data: timeline.data, backgroundColor: cssVar("--accent") }],
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: textColor, font: { size: 8 }, maxRotation: 60, minRotation: 45 }, grid: { display: false } },
-          y: { beginAtZero: true, ticks: { color: textColor, precision: 0 }, grid: { color: gridColor } },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: textColor, font: { size: 9 } }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: textColor, precision: 0 }, grid: { color: gridColor } },
+          },
         },
-      },
-    });
+      });
+    }
+
+    if (this.prefs.showNotified) {
+      this._notifiedChart = new Chart(document.getElementById("chart-notified"), {
+        type: "doughnut",
+        data: {
+          labels: Log.NOTIFY_OPTIONS,
+          datasets: [{ data: Log.NOTIFY_OPTIONS.map((n) => notifiedCounts[n]), backgroundColor: this._chartColors }],
+        },
+        options: {
+          plugins: { legend: { position: "bottom", labels: { color: textColor, font: { size: 9 }, boxWidth: 10 } } },
+        },
+      });
+    }
+
+    if (this.prefs.showTimeline) {
+      const timeline = this._buildTimeline(entries);
+      this._timeChart = new Chart(document.getElementById("chart-timeline"), {
+        type: chartType,
+        data: {
+          labels: timeline.labels,
+          datasets: [{
+            label: "Hendelser", data: timeline.data,
+            backgroundColor: chartType === "line" ? cssVar("--accent") + "33" : cssVar("--accent"),
+            borderColor: cssVar("--accent"), ...lineExtras,
+          }],
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: textColor, font: { size: 8 }, maxRotation: 60, minRotation: 45 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: textColor, precision: 0 }, grid: { color: gridColor } },
+          },
+        },
+      });
+    }
   },
 };

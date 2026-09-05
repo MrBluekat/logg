@@ -63,7 +63,8 @@ window.PDFExport = {
       y += 11;
 
       // Meta-linje: lokasjon, kilde, registrert av - sammen på én kompakt linje
-      const metaParts = [`Sted: ${e.location}`];
+      const metaParts = [];
+      if (e.location) metaParts.push(`Sted: ${e.location}`);
       if (e.reporter_source) metaParts.push(`Via: ${e.reporter_source}`);
       metaParts.push(`Reg. av: ${e.created_by_name}`);
       text(metaParts.join("   ·   "), 7.5, "normal", "#666666");
