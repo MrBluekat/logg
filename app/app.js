@@ -10,7 +10,7 @@
 //   push_subscriptions (id, user_id, endpoint, p256dh, auth)
 // ===========================================================================
 
-const supabase = window.supabase.createClient(
+const db = window.supabase.createClient(
   CONFIG.SUPABASE_URL,
   CONFIG.SUPABASE_ANON_KEY
 );
@@ -27,13 +27,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("online", updateOnlineStatus);
   window.addEventListener("offline", updateOnlineStatus);
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await db.auth.getSession();
   if (session) {
     await enterApp();
   }
 });
 
-supabase.auth.onAuthStateChange((event) => {
+db.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT") {
     el("screen-app").classList.add("hidden");
     el("screen-login").classList.remove("hidden");
@@ -59,7 +59,7 @@ function wireUpEvents() {
       ? username
       : `${username}@${CONFIG.LOGIN_EMAIL_DOMAIN}`;
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await db.auth.signInWithPassword({ email, password });
 
     btn.disabled = false;
     btn.textContent = "Logg inn";
@@ -110,7 +110,7 @@ function switchTab(tab) {
 // Logg
 // ---------------------------------------------------------------------------
 async function loadHendelser() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from(CONFIG.TABLE_HENDELSER)
     .select("*")
     .order("created_at", { ascending: false })
@@ -155,7 +155,7 @@ function hendelseRow(row) {
 }
 
 function subscribeToRealtimeHendelser() {
-  supabase
+  db
     .channel("hendelser-live")
     .on(
       "postgres_changes",
@@ -173,7 +173,7 @@ function subscribeToRealtimeHendelser() {
 // Oppgaver
 // ---------------------------------------------------------------------------
 async function loadOppgaver() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from(CONFIG.TABLE_OPPGAVER)
     .select("*")
     .order("frist", { ascending: true });
@@ -208,7 +208,7 @@ function renderOppgaver(rows) {
 
 async function toggleOppgave(row) {
   const newStatus = row.status === "fullført" ? "åpen" : "fullført";
-  const { error } = await supabase
+  const { error } = await db
     .from(CONFIG.TABLE_OPPGAVER)
     .update({ status: newStatus })
     .eq("id", row.id);
@@ -252,9 +252,9 @@ async function saveNewHendelse(e) {
       bildeUrl = await uploadPhoto(selectedPhotoFile);
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await db.auth.getUser();
 
-    const { error } = await supabase.from(CONFIG.TABLE_HENDELSER).insert({
+    const { error } = await db.from(CONFIG.TABLE_HENDELSER).insert({
       kategori: el("new-kategori").value,
       alvorlighet: el("new-alvorlighet").value,
       beskrivelse: el("new-beskrivelse").value,
@@ -279,9 +279,9 @@ async function saveNewHendelse(e) {
 
 async function uploadPhoto(file) {
   const path = `${Date.now()}-${file.name}`;
-  const { error } = await supabase.storage.from("hendelse-bilder").upload(path, file);
+  const { error } = await db.storage.from("hendelse-bilder").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("hendelse-bilder").getPublicUrl(path);
+  const { data } = db.storage.from("hendelse-bilder").getPublicUrl(path);
   return data.publicUrl;
 }
 
@@ -310,9 +310,9 @@ async function enablePush() {
     });
 
     const raw = subscription.toJSON();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await db.auth.getUser();
 
-    await supabase.from("push_subscriptions").upsert({
+    await db.from("push_subscriptions").upsert({
       user_id: user ? user.id : null,
       endpoint: raw.endpoint,
       p256dh: raw.keys.p256dh,
