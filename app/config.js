@@ -1,20 +1,11 @@
-// ---------------------------------------------------------------------------
-// FYLL INN DINE EGNE VERDIER HER FØR DU TAR APPEN I BRUK.
-// Du finner Supabase-verdiene under: Project Settings -> API i Supabase-dashbordet.
-// ---------------------------------------------------------------------------
-
 const CONFIG = {
-  // Project URL, f.eks. "https://xxxxxxxxxxxx.supabase.co"
-  SUPABASE_URL: "https://DITT-PROSJEKT.supabase.co",
+  SUPABASE_URL: "https://heqpvjeuijgbgijdllmz.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_Fl0dVLB7v0Q7KphvY2opcw_dSt1NZIY",
 
-  // "anon public" nøkkelen (IKKE service_role-nøkkelen — den skal aldri ligge i frontend-kode)
-  SUPABASE_ANON_KEY: "DIN-ANON-KEY",
-
-  // Navnet på tabellene dine i Supabase. Endre disse til det du faktisk kalte dem.
   TABLE_HENDELSER: "hendelser",
   TABLE_OPPGAVER: "oppgaver",
 
-  // Public VAPID-nøkkel for push-varsler (genereres én gang, se SETUP.md steg 5)
-  VAPID_PUBLIC_KEY: "DIN-VAPID-PUBLIC-KEY",
-};
+  VAPID_PUBLIC_KEY: "BPAENCgxyfop6SoGJetB8ERHRT2f4hEZijT5UE5yJfHhiZiUZk2qgI9YTDxe_HFIhJ-CYSVUDsuayk5DF9PY6Zs",
+
   LOGIN_EMAIL_DOMAIN: "arrangementslogg.local",
+};
