@@ -10,9 +10,11 @@
   <div class="topbar">
     <span class="event-name" id="event-name">–</span>
     <div class="clock" id="clock">--:--:--</div>
+    <button class="ghost" onclick="Contacts.open()">📇 <span data-i18n="contact_list">Kontaktliste</span></button>
+    <button class="ghost" onclick="Files.open()">📁 <span data-i18n="files">Filer</span></button>
     <div class="topbar-spacer"></div>
+    <button class="ghost" onclick="Dashboard.open()">📊 <span data-i18n="dashboard">Dashboard</span></button>
     <div class="lang-theme-toggle">
-      <button class="ghost" onclick="Contacts.open()">📇 Kontaktliste</button>
       <button class="ghost" onclick="Lang.set('no'); rerender()">NO</button>
       <button class="ghost" onclick="Lang.set('en'); rerender()">EN</button>
       <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
@@ -42,21 +44,25 @@
 
     <div class="stack">
       <div class="panel">
-        <div class="panel-head" data-i18n="dashboard">Dashboard</div>
-        <div class="panel-body" id="dashboard"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head" data-i18n="timers">Timere</div>
+        <div class="panel-head" data-i18n="timers">Tid</div>
         <div class="panel-body">
           <div class="timer-list" id="timer-list"></div>
-          <div class="row" style="margin-top:.7rem">
-            <input id="new-timer-name" placeholder="Navn" style="flex:1">
-            <select id="new-timer-type">
-              <option value="stopwatch" data-i18n="timer_type_stopwatch">Stoppeklokke</option>
-              <option value="countdown" data-i18n="timer_type_countdown">Nedtelling</option>
-            </select>
-            <input id="new-timer-minutes" type="number" min="0" placeholder="min" style="width:70px">
+          <div class="stack" style="margin-top:.7rem; gap:.4rem">
+            <div class="row">
+              <input id="new-timer-name" placeholder="Navn" style="flex:1">
+              <select id="new-timer-type" onchange="updateTimerInputs()">
+                <option value="stopwatch" data-i18n="timer_type_stopwatch">Stoppeklokke</option>
+                <option value="countdown_duration" data-i18n="timer_type_countdown_duration">Nedtelling (varighet)</option>
+                <option value="countdown_to" data-i18n="timer_type_countdown_to">Nedtelling til tidspunkt</option>
+              </select>
+            </div>
+            <div class="row" id="timer-duration-inputs">
+              <input id="new-timer-hours" type="number" min="0" placeholder="t" style="width:60px">
+              <input id="new-timer-minutes" type="number" min="0" placeholder="min" style="width:60px">
+            </div>
+            <div class="row hidden" id="timer-target-inputs">
+              <input id="new-timer-target" type="datetime-local" style="flex:1">
+            </div>
             <button onclick="addTimer()" data-i18n="new_timer">Ny timer</button>
           </div>
         </div>
@@ -77,16 +83,24 @@
   <script src="js/log.js"></script>
   <script src="js/pdfExport.js"></script>
   <script src="js/contacts.js"></script>
+  <script src="js/files.js"></script>
   <script>
     function rerender() {
       Lang.apply();
       Log._renderForm(); Log._renderFilters(); Log._renderEntries();
     }
+    function updateTimerInputs() {
+      const type = document.getElementById("new-timer-type").value;
+      document.getElementById("timer-duration-inputs").classList.toggle("hidden", type !== "countdown_duration");
+      document.getElementById("timer-target-inputs").classList.toggle("hidden", type !== "countdown_to");
+    }
     function addTimer() {
       const name = document.getElementById("new-timer-name").value;
       const type = document.getElementById("new-timer-type").value;
+      const hours = parseFloat(document.getElementById("new-timer-hours").value || "0");
       const minutes = parseFloat(document.getElementById("new-timer-minutes").value || "0");
-      Timers.add(name, type, minutes);
+      const target = document.getElementById("new-timer-target").value;
+      Timers.add(name, type, { hours, minutes, target });
       document.getElementById("new-timer-name").value = "";
     }
 
@@ -113,6 +127,7 @@
       Lang.apply();
       Clock.start("clock");
       Timers.init("timer-list");
+      updateTimerInputs();
       await Log.init();
       if (!Auth.canWrite()) document.getElementById("entry-form-panel").classList.add("hidden");
     })();

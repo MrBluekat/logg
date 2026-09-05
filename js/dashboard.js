@@ -1,8 +1,34 @@
 window.Dashboard = {
-  update(entries) {
-    const el = document.getElementById("dashboard");
-    if (!el) return;
+  latestEntries: [],
+  isOpen: false,
 
+  // Kalles av Log.refresh() hver gang data endres (også via sanntid) - oppdaterer
+  // modalen live dersom den står åpen.
+  update(entries) {
+    this.latestEntries = entries;
+    if (this.isOpen) this._renderInto(document.getElementById("dashboard-body"));
+  },
+
+  open() {
+    const box = document.getElementById("history-modal");
+    box.innerHTML = `
+      <div class="panel" style="max-width:520px;margin:3rem auto;">
+        <div class="panel-head">${Lang.t("dashboard")} <button class="ghost" onclick="Dashboard.close()">✕</button></div>
+        <div class="panel-body" id="dashboard-body"></div>
+      </div>`;
+    box.classList.remove("hidden");
+    this.isOpen = true;
+    this._renderInto(document.getElementById("dashboard-body"));
+  },
+
+  close() {
+    this.isOpen = false;
+    document.getElementById("history-modal").classList.add("hidden");
+  },
+
+  _renderInto(el) {
+    if (!el) return;
+    const entries = this.latestEntries;
     const total = entries.length;
     const notified = entries.filter((e) => e.notified && e.notified.length).length;
     const ongoing = entries.filter((e) => e.status === "pagaende").length;

@@ -147,15 +147,18 @@ create table public.log_comments (
   created_at       timestamptz not null default now()
 );
 
--- Vedlegg (bilder/filer) - selve filen ligger i Storage, denne raden peker til den
+-- Vedlegg (bilder/filer) - selve filen ligger i Storage, denne raden peker til den.
+-- log_entry_id er null for filer lastet opp manuelt via "Filer"-galleriet (ikke knyttet til en hendelse).
 create table public.log_attachments (
-  id             uuid primary key default gen_random_uuid(),
-  log_entry_id   uuid not null references public.log_entries(id) on delete cascade,
-  file_path      text not null,     -- path i Storage-bucketen "attachments"
-  file_name      text not null,
-  file_type      text,
-  uploaded_by    uuid references public.profiles(id),
-  uploaded_at    timestamptz not null default now()
+  id                uuid primary key default gen_random_uuid(),
+  event_id          uuid not null references public.events(id) on delete cascade,
+  log_entry_id      uuid references public.log_entries(id) on delete cascade,
+  file_path         text not null,     -- path i Storage-bucketen "attachments"
+  file_name         text not null,
+  file_type         text,
+  uploaded_by       uuid references public.profiles(id),
+  uploaded_by_name  text,
+  uploaded_at       timestamptz not null default now()
 );
 
 -- ----------------------------------------------------------------------------
@@ -262,14 +265,12 @@ create policy "kommentar: admin/logger oppretter" on public.log_comments
 -- LOG ATTACHMENTS
 create policy "vedlegg: se eget arrangement" on public.log_attachments
   for select using (
-    public.current_role_name() = 'admin'
-    or exists (select 1 from public.log_entries e where e.id = log_entry_id and e.event_id = public.current_event_id())
+    public.current_role_name() = 'admin' or event_id = public.current_event_id()
   );
 create policy "vedlegg: admin/logger laster opp" on public.log_attachments
   for insert with check (
     public.current_role_name() = 'admin'
-    or (public.current_role_name() = 'logger'
-        and exists (select 1 from public.log_entries e where e.id = log_entry_id and e.event_id = public.current_event_id()))
+    or (public.current_role_name() = 'logger' and event_id = public.current_event_id())
   );
 
 -- ----------------------------------------------------------------------------

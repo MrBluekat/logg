@@ -48,34 +48,11 @@ window.Admin = {
           <td>${ev.status}</td>
           <td>
             <a href="app.html?event=${ev.id}"><button class="ghost">Åpne logg</button></a>
-            <button class="ghost" onclick="Admin.manageLocations('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("manage_locations")}</button>
             <button class="ghost" onclick="PDFExport.exportEvent('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("export_pdf")}</button>
             ${ev.status === "active" ? `<button class="danger" onclick="Admin.archiveEvent('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("archive_export")}</button>` : ""}
           </td>
         </tr>`).join("")}</tbody></table>
     `;
-  },
-
-  async manageLocations(eventId, eventName) {
-    const { data } = await sb.from("locations").select("*").eq("event_id", eventId).order("name");
-    const box = document.getElementById("history-modal");
-    box.innerHTML = `
-      <div class="panel" style="max-width:480px;margin:3rem auto;">
-        <div class="panel-head">${Lang.t("manage_locations")} – ${eventName} <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
-        <div class="panel-body">
-          <ul>${(data || []).map((l) => `<li>${l.name}</li>`).join("")}</ul>
-          <div class="row"><input id="new-loc-name" placeholder="${Lang.t("add_location")}" style="flex:1">
-          <button onclick="Admin.addLocationTo('${eventId}','${eventName.replace(/'/g, "\\'")}')">${Lang.t("add_location")}</button></div>
-        </div>
-      </div>`;
-    box.classList.remove("hidden");
-  },
-
-  async addLocationTo(eventId, eventName) {
-    const name = document.getElementById("new-loc-name").value.trim();
-    if (!name) return;
-    await sb.from("locations").insert({ event_id: eventId, name });
-    this.manageLocations(eventId, eventName);
   },
 
   async archiveEvent(eventId, eventName) {

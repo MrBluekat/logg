@@ -29,6 +29,39 @@ window.Log = {
     await this.loadLocations();
   },
 
+  async removeLocation(id) {
+    await sb.from("locations").delete().eq("id", id);
+    await this.loadLocations();
+    this.manageLocations();
+  },
+
+  manageLocations() {
+    const box = document.getElementById("history-modal");
+    const canWrite = Auth.canWrite();
+    box.innerHTML = `
+      <div class="panel" style="max-width:420px;margin:3rem auto;">
+        <div class="panel-head">${Lang.t("manage_locations")} <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
+        <div class="panel-body">
+          <ul>${this.locations.map((l) => `<li style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+            <span>${l.name}</span> ${canWrite ? `<button class="ghost" onclick="Log.removeLocation('${l.id}')">${Lang.t("remove")}</button>` : ""}
+          </li>`).join("") || `<li class="small">–</li>`}</ul>
+          ${canWrite ? `
+            <div class="row"><input id="new-loc-name" placeholder="${Lang.t("add_location")}" style="flex:1">
+            <button onclick="Log.addLocationAndRerender()">${Lang.t("add_location")}</button></div>
+          ` : ""}
+        </div>
+      </div>`;
+    box.classList.remove("hidden");
+  },
+
+  async addLocationAndRerender() {
+    const name = document.getElementById("new-loc-name").value.trim();
+    if (!name) return;
+    await this.addLocation(name);
+    this._renderForm();
+    this.manageLocations();
+  },
+
   _subscribeRealtime() {
     sb.channel("log-" + Auth.event.id)
       .on("postgres_changes", { event: "*", schema: "public", table: "log_entries", filter: `event_id=eq.${Auth.event.id}` }, () => this.refresh())
@@ -107,7 +140,7 @@ window.Log = {
       <div class="grid-2">
         <div class="field"><label>${Lang.t("category")}</label>
           <select id="in-category">${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
-        <div class="field"><label>${Lang.t("location")}</label>
+        <div class="field"><label>${Lang.t("location")} <button class="ghost" style="padding:.1rem .4rem" onclick="Log.manageLocations()">⚙</button></label>
           <select id="in-location" onchange="document.getElementById('in-location-custom').classList.toggle('hidden', this.value !== '__custom')">
             ${this.locations.map((l) => `<option value="${l.name}">${l.name}</option>`).join("")}
             <option value="__custom">${Lang.t("location_custom")}</option>
@@ -168,8 +201,8 @@ window.Log = {
       const { error } = await sb.storage.from("attachments").upload(path, file);
       if (error) { console.error(error); continue; }
       await sb.from("log_attachments").insert({
-        log_entry_id: entryId, file_path: path, file_name: file.name,
-        file_type: file.type, uploaded_by: Auth.profile.id,
+        event_id: Auth.event.id, log_entry_id: entryId, file_path: path, file_name: file.name,
+        file_type: file.type, uploaded_by: Auth.profile.id, uploaded_by_name: Auth.profile.full_name,
       });
     }
   },
