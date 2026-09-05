@@ -39,6 +39,10 @@
   <script src="js/auth.js"></script>
   <script>
     Lang.apply();
+    // Vis beskjed hvis vi ble sendt hit fordi kontoen er utenfor sitt gyldige tidsrom
+    if (new URLSearchParams(window.location.search).get("deactivated") === "1") {
+      document.getElementById("login-error").textContent = Lang.t("account_deactivated");
+    }
     document.getElementById("password").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
 
     async function doLogin() {
@@ -49,7 +53,12 @@
         document.getElementById("login-error").textContent = Lang.t("login_error");
         return;
       }
-      await Auth.loadProfile();
+      const profile = await Auth.loadProfile();
+      if (profile && !Auth._isActive(profile)) {
+        await sb.auth.signOut();
+        document.getElementById("login-error").textContent = Lang.t("account_deactivated");
+        return;
+      }
       window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
     }
 

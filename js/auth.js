@@ -13,9 +13,21 @@ window.Auth = {
       window.location.href = redirectIfMissing;
       return null;
     }
-    await this.loadProfile();
+    const profile = await this.loadProfile();
+    if (profile && !this._isActive(profile)) {
+      await sb.auth.signOut();
+      window.location.href = "index.html?deactivated=1";
+      return null;
+    }
     this._resetInactivityTimer();
     return data.session;
+  },
+
+  _isActive(profile) {
+    const now = new Date();
+    if (profile.active_from && new Date(profile.active_from) > now) return false;
+    if (profile.active_until && new Date(profile.active_until) < now) return false;
+    return true;
   },
 
   async loadProfile() {

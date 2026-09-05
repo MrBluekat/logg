@@ -144,17 +144,68 @@ window.Admin = {
     }
   },
 
+  async deleteUser(userId) {
+    if (!confirm(Lang.t("confirm_delete_user"))) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const resp = await fetch(`${window.SUPABASE_URL}/functions/v1/admin-delete-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) { alert("Feil: " + (result.error || "ukjent feil")); return; }
+      await this.refreshUsers();
+    } catch (e) {
+      alert("Kunne ikke nå funksjonen: " + e);
+    }
+  },
+
+  async saveUserRow(userId) {
+    const eventEl = document.getElementById(`u-event-${userId}`);
+    const fromEl = document.getElementById(`u-from-${userId}`);
+    const untilEl = document.getElementById(`u-until-${userId}`);
+    const payload = {
+      active_from: fromEl.value ? new Date(fromEl.value).toISOString() : null,
+      active_until: untilEl.value ? new Date(untilEl.value).toISOString() : null,
+    };
+    if (eventEl) payload.event_id = eventEl.value || null;
+    const { error } = await sb.from("profiles").update(payload).eq("id", userId);
+    if (error) { alert("Feil: " + error.message); return; }
+    await this.refreshUsers();
+  },
+
+  _toDatetimeLocal(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  },
+
   _renderUsers() {
     document.getElementById("user-list").innerHTML = `
-      <table class="data-table"><thead><tr><th>${Lang.t("username")}</th><th>${Lang.t("full_name")}</th><th>${Lang.t("role")}</th><th>${Lang.t("assigned_event")}</th><th></th></tr></thead>
+      <table class="data-table"><thead><tr>
+        <th>${Lang.t("username")}</th><th>${Lang.t("full_name")}</th><th>${Lang.t("role")}</th>
+        <th>${Lang.t("assigned_event")}</th><th>${Lang.t("active_from")}</th><th>${Lang.t("active_until")}</th><th></th>
+      </tr></thead>
       <tbody>${this.users.map((u) => `
         <tr>
           <td class="mono">${u.username}</td>
           <td>${u.full_name}</td>
           <td>${Lang.t("role_" + u.role)}</td>
-          <td>${this.events.find((e) => e.id === u.event_id)?.name || "–"}</td>
-          <td><button class="ghost" onclick="Admin.resetPassword('${u.id}')">${Lang.t("reset_password")}</button></td>
+          <td>${u.role === "admin" ? "–" : `
+            <select id="u-event-${u.id}">
+              ${this.events.map((ev) => `<option value="${ev.id}" ${ev.id === u.event_id ? "selected" : ""}>${ev.name}</option>`).join("")}
+            </select>`}</td>
+          <td><input type="datetime-local" id="u-from-${u.id}" value="${this._toDatetimeLocal(u.active_from)}" style="min-width:170px"></td>
+          <td><input type="datetime-local" id="u-until-${u.id}" value="${this._toDatetimeLocal(u.active_until)}" style="min-width:170px"></td>
+          <td>
+            <button class="ghost" onclick="Admin.saveUserRow('${u.id}')">${Lang.t("save_row")}</button>
+            <button class="ghost" onclick="Admin.resetPassword('${u.id}')">${Lang.t("reset_password")}</button>
+            <button class="danger" onclick="Admin.deleteUser('${u.id}')">${Lang.t("delete_user")}</button>
+          </td>
         </tr>`).join("")}</tbody></table>
+      <p class="small" style="margin-top:.5rem">${Lang.t("no_limit")}: la feltet stå tomt.</p>
     `;
   },
 };

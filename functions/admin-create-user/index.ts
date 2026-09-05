@@ -1,15 +1,28 @@
 // Supabase Edge Function: admin-create-user
 // Kun innloggede admin-brukere kan kalle denne. Oppretter en ny bruker
 // (auth.users + profiles) med brukernavn, passord, rolle og ev. arrangement.
-//
-// Deploy: supabase functions deploy admin-create-user
-// Krever secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (sett med `supabase secrets set`)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const EMAIL_DOMAIN = "arrangementslogg.local"; // brukernavn -> {brukernavn}@arrangementslogg.local
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const anonClient = createClient(
@@ -18,10 +31,9 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // 1. Verifiser at kalleren er innlogget og er admin
     const { data: userData, error: userErr } = await anonClient.auth.getUser();
     if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Ikke innlogget" }), { status: 401 });
+      return json({ error: "Ikke innlogget" }, 401);
     }
 
     const admin = createClient(
@@ -36,34 +48,31 @@ Deno.serve(async (req) => {
       .single();
 
     if (profile?.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Kun admin kan opprette brukere" }), { status: 403 });
+      return json({ error: "Kun admin kan opprette brukere" }, 403);
     }
 
-    // 2. Les input
     const { username, password, full_name, role, event_id } = await req.json();
     if (!username || !password || !full_name || !role) {
-      return new Response(JSON.stringify({ error: "Mangler felt" }), { status: 400 });
+      return json({ error: "Mangler felt" }, 400);
     }
     if (!["admin", "logger", "observator"].includes(role)) {
-      return new Response(JSON.stringify({ error: "Ugyldig rolle" }), { status: 400 });
+      return json({ error: "Ugyldig rolle" }, 400);
     }
     if (role !== "admin" && !event_id) {
-      return new Response(JSON.stringify({ error: "Logger/observatør må ha et arrangement" }), { status: 400 });
+      return json({ error: "Logger/observatør må ha et arrangement" }, 400);
     }
 
     const email = `${username.trim().toLowerCase()}@${EMAIL_DOMAIN}`;
 
-    // 3. Opprett auth-bruker
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
     });
     if (createErr) {
-      return new Response(JSON.stringify({ error: createErr.message }), { status: 400 });
+      return json({ error: createErr.message }, 400);
     }
 
-    // 4. Opprett profil
     const { error: profileErr } = await admin.from("profiles").insert({
       id: created.user.id,
       username: username.trim().toLowerCase(),
@@ -72,15 +81,12 @@ Deno.serve(async (req) => {
       event_id: role === "admin" ? null : event_id,
     });
     if (profileErr) {
-      // rydd opp auth-brukeren hvis profil feiler
       await admin.auth.admin.deleteUser(created.user.id);
-      return new Response(JSON.stringify({ error: profileErr.message }), { status: 400 });
+      return json({ error: profileErr.message }, 400);
     }
 
-    return new Response(JSON.stringify({ ok: true, user_id: created.user.id }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ ok: true, user_id: created.user.id });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+    return json({ error: String(e) }, 500);
   }
 });

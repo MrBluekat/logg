@@ -72,6 +72,13 @@ window.I18N = {
     manage_locations: "Administrer lokasjoner",
     add_location: "Legg til lokasjon",
     confirm_archive: "Dette vil eksportere arrangementet til PDF og deretter slette det permanent. Fortsette?",
+    account_deactivated: "Denne kontoen er utenfor sitt gyldige tidsrom og er derfor deaktivert.",
+    active_from: "Aktiv fra",
+    active_until: "Aktiv til",
+    no_limit: "Ingen grense",
+    save_row: "Lagre",
+    delete_user: "Slett bruker",
+    confirm_delete_user: "Slette denne brukeren permanent? Dette kan ikke angres.",
   },
   en: {
     login_title: "Log in",
@@ -146,6 +153,13 @@ window.I18N = {
     manage_locations: "Manage locations",
     add_location: "Add location",
     confirm_archive: "This will export the event to PDF and then delete it permanently. Continue?",
+    account_deactivated: "This account is outside its valid time window and is therefore deactivated.",
+    active_from: "Active from",
+    active_until: "Active until",
+    no_limit: "No limit",
+    save_row: "Save",
+    delete_user: "Delete user",
+    confirm_delete_user: "Permanently delete this user? This cannot be undone.",
   },
 };
 

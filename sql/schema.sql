@@ -33,18 +33,27 @@ create table public.profiles (
   username     text unique not null,     -- det brukeren faktisk taster inn ved innlogging
   role         text not null check (role in ('admin','logger','observator')),
   event_id     uuid references public.events(id) on delete set null, -- null for admin
+  active_from  timestamptz,              -- null = ingen nedre grense
+  active_until timestamptz,              -- null = ingen øvre grense
   created_at   timestamptz not null default now()
 );
 
 -- Hjelpefunksjon: henter rolle for innlogget bruker (brukes i RLS-policyer)
+-- Returnerer null (= ingen tilgang) hvis kontoen er utenfor sitt gyldige tidsrom.
 create or replace function public.current_role_name()
 returns text language sql stable security definer as $$
-  select role from public.profiles where id = auth.uid()
+  select role from public.profiles
+  where id = auth.uid()
+    and (active_from is null or active_from <= now())
+    and (active_until is null or active_until >= now())
 $$;
 
 create or replace function public.current_event_id()
 returns uuid language sql stable security definer as $$
-  select event_id from public.profiles where id = auth.uid()
+  select event_id from public.profiles
+  where id = auth.uid()
+    and (active_from is null or active_from <= now())
+    and (active_until is null or active_until >= now())
 $$;
 
 -- ----------------------------------------------------------------------------
