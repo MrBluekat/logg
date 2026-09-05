@@ -47,6 +47,7 @@ window.Admin = {
           <td class="mono">${ev.event_date || "–"}</td>
           <td>${ev.status}</td>
           <td>
+            <a href="app.html?event=${ev.id}"><button class="ghost">Åpne logg</button></a>
             <button class="ghost" onclick="Admin.manageLocations('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("manage_locations")}</button>
             <button class="ghost" onclick="PDFExport.exportEvent('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("export_pdf")}</button>
             ${ev.status === "active" ? `<button class="danger" onclick="Admin.archiveEvent('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("archive_export")}</button>` : ""}
@@ -108,27 +109,39 @@ window.Admin = {
     const full_name = document.getElementById("u-fullname").value.trim();
     const role = document.getElementById("u-role").value;
     const event_id = role === "admin" ? null : document.getElementById("u-event").value;
-    const { data: { session } } = await sb.auth.getSession();
-    const resp = await fetch(`${window.SUPABASE_URL}/functions/v1/admin-create-user`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ username, password, full_name, role, event_id }),
-    });
-    const result = await resp.json();
-    if (!resp.ok) { document.getElementById("user-form-error").textContent = result.error || "Feil"; return; }
-    await this.refreshUsers();
+    const errEl = document.getElementById("user-form-error");
+    errEl.textContent = "";
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const resp = await fetch(`${window.SUPABASE_URL}/functions/v1/admin-create-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ username, password, full_name, role, event_id }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) { errEl.textContent = result.error || "Feil ved oppretting"; return; }
+      await this.refreshUsers();
+    } catch (e) {
+      errEl.textContent = "Kunne ikke nå funksjonen (sjekk at admin-create-user er deployet med CORS-støtte): " + e;
+    }
   },
 
   async resetPassword(userId) {
     const newPassword = prompt(Lang.t("reset_password") + ":");
     if (!newPassword) return;
-    const { data: { session } } = await sb.auth.getSession();
-    await fetch(`${window.SUPABASE_URL}/functions/v1/admin-reset-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ user_id: userId, new_password: newPassword }),
-    });
-    alert("Passord oppdatert.");
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const resp = await fetch(`${window.SUPABASE_URL}/functions/v1/admin-reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ user_id: userId, new_password: newPassword }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) { alert("Feil: " + (result.error || "ukjent feil")); return; }
+      alert("Passord oppdatert.");
+    } catch (e) {
+      alert("Kunne ikke nå funksjonen: " + e);
+    }
   },
 
   _renderUsers() {
