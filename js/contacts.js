@@ -1,5 +1,6 @@
 window.Contacts = {
   list: [],
+  _dragId: null,
 
   async open() {
     await this.load();
@@ -48,14 +49,19 @@ window.Contacts = {
     this._render();
   },
 
-  async move(id, direction) {
-    const idx = this.list.findIndex((c) => c.id === id);
-    const swapIdx = idx + direction;
-    if (idx === -1 || swapIdx < 0 || swapIdx >= this.list.length) return;
-    const a = this.list[idx];
-    const b = this.list[swapIdx];
-    await sb.from("contacts").update({ sort_order: b.sort_order }).eq("id", a.id);
-    await sb.from("contacts").update({ sort_order: a.sort_order }).eq("id", b.id);
+  // --- Drag-and-drop reordering ---
+  _onDragStart(id) { this._dragId = id; },
+
+  async _onDrop(targetId) {
+    if (!this._dragId || this._dragId === targetId) return;
+    const fromIdx = this.list.findIndex((c) => c.id === this._dragId);
+    const toIdx = this.list.findIndex((c) => c.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = this.list.splice(fromIdx, 1);
+    this.list.splice(toIdx, 0, moved);
+    this._dragId = null;
+    // Skriv ny rekkefølge til alle rader (enkelt og trygt fremfor å regne ut minimal diff)
+    await Promise.all(this.list.map((c, i) => sb.from("contacts").update({ sort_order: i }).eq("id", c.id)));
     await this.load();
     this._render();
   },
@@ -64,40 +70,36 @@ window.Contacts = {
     const box = document.getElementById("history-modal");
     const canWrite = Auth.canWrite();
     box.innerHTML = `
-      <div class="panel" style="max-width:600px;margin:3rem auto;">
+      <div class="panel" style="max-width:760px;margin:2rem auto;">
         <div class="panel-head">${Lang.t("contact_list")} <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
         <div class="panel-body">
-          <table class="data-table">
-            <thead><tr><th>${Lang.t("contact_name")}</th><th>${Lang.t("contact_phone")}</th><th>${Lang.t("contact_email")}</th><th>${Lang.t("contact_org")}</th>${canWrite ? "<th></th>" : ""}</tr></thead>
-            <tbody>
-              ${this.list.map((c, i) => {
-                if (c.is_divider) {
-                  return `<tr><td colspan="${canWrite ? 5 : 4}" style="padding-top:1rem">
-                    <div style="display:flex;align-items:center;gap:.6rem">
-                      <strong style="white-space:nowrap">${c.name}</strong>
-                      <div style="flex:1;border-top:1px solid var(--border)"></div>
-                      ${canWrite ? `
-                        <button class="ghost" onclick="Contacts.move('${c.id}',-1)" ${i === 0 ? "disabled" : ""}>▲</button>
-                        <button class="ghost" onclick="Contacts.move('${c.id}',1)" ${i === this.list.length - 1 ? "disabled" : ""}>▼</button>
-                        <button class="ghost" onclick="Contacts.remove('${c.id}')">${Lang.t("remove")}</button>
-                      ` : ""}
-                    </div>
-                  </td></tr>`;
-                }
-                return `<tr>
-                  <td>${c.name}</td>
-                  <td class="mono">${c.phone || "–"}</td>
-                  <td>${c.email || "–"}</td>
-                  <td>${c.organization || "–"}</td>
-                  ${canWrite ? `<td class="row" style="gap:.3rem">
-                    <button class="ghost" onclick="Contacts.move('${c.id}',-1)" ${i === 0 ? "disabled" : ""}>▲</button>
-                    <button class="ghost" onclick="Contacts.move('${c.id}',1)" ${i === this.list.length - 1 ? "disabled" : ""}>▼</button>
-                    <button class="ghost" onclick="Contacts.remove('${c.id}')">${Lang.t("remove")}</button>
-                  </td>` : ""}
-                </tr>`;
-              }).join("") || `<tr><td colspan="5" class="small">–</td></tr>`}
-            </tbody>
-          </table>
+          <div style="max-height:50vh; overflow-y:auto; border:1px solid var(--border); border-radius:6px">
+            <div style="display:grid; grid-template-columns:${canWrite ? "20px" : ""} 1.3fr 1fr 1.3fr 1fr ${canWrite ? "auto" : ""}; gap:0 .6rem; padding:.4rem .6rem; font-size:.78rem; color:var(--text-muted); border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel)">
+              ${canWrite ? "<span></span>" : ""}
+              <span>${Lang.t("contact_name")}</span><span>${Lang.t("contact_phone")}</span><span>${Lang.t("contact_email")}</span><span>${Lang.t("contact_org")}</span>
+              ${canWrite ? "<span></span>" : ""}
+            </div>
+            ${this.list.map((c) => {
+              if (c.is_divider) {
+                return `<div ${canWrite ? `draggable="true" ondragstart="Contacts._onDragStart('${c.id}')" ondragover="event.preventDefault()" ondrop="Contacts._onDrop('${c.id}')"` : ""}
+                  style="display:flex; align-items:center; gap:.5rem; padding:.5rem .6rem; border-bottom:1px solid var(--border); cursor:${canWrite ? "grab" : "default"}">
+                  ${canWrite ? `<span class="small">⠿</span>` : ""}
+                  <strong style="white-space:nowrap; font-size:.85rem">${c.name}</strong>
+                  <div style="flex:1; border-top:1px solid var(--border)"></div>
+                  ${canWrite ? `<button class="ghost" style="padding:.1rem .4rem" onclick="Contacts.remove('${c.id}')">${Lang.t("remove")}</button>` : ""}
+                </div>`;
+              }
+              return `<div ${canWrite ? `draggable="true" ondragstart="Contacts._onDragStart('${c.id}')" ondragover="event.preventDefault()" ondrop="Contacts._onDrop('${c.id}')"` : ""}
+                style="display:grid; grid-template-columns:${canWrite ? "20px" : ""} 1.3fr 1fr 1.3fr 1fr ${canWrite ? "auto" : ""}; gap:0 .6rem; align-items:center; padding:.35rem .6rem; border-bottom:1px solid var(--border); font-size:.88rem; cursor:${canWrite ? "grab" : "default"}">
+                ${canWrite ? `<span class="small">⠿</span>` : ""}
+                <span>${c.name}</span>
+                <span class="mono small">${c.phone || "–"}</span>
+                <span class="small">${c.email || "–"}</span>
+                <span class="small">${c.organization || "–"}</span>
+                ${canWrite ? `<button class="ghost" style="padding:.1rem .4rem" onclick="Contacts.remove('${c.id}')">${Lang.t("remove")}</button>` : ""}
+              </div>`;
+            }).join("") || `<div class="small" style="padding:.6rem">–</div>`}
+          </div>
           ${canWrite ? `
             <div class="grid-2" style="margin-top:1rem">
               <div class="field"><label>${Lang.t("contact_name")}</label><input id="contact-name"></div>

@@ -3,7 +3,7 @@ window.Files = {
 
   async open() {
     await this.load();
-    this._render();
+    this._renderList();
   },
 
   async load() {
@@ -22,13 +22,13 @@ window.Files = {
       });
     }
     await this.load();
-    this._render();
+    this._renderList();
   },
 
   async remove(id) {
     await sb.from("log_attachments").delete().eq("id", id);
     await this.load();
-    this._render();
+    this._renderList();
   },
 
   async _url(path) {
@@ -36,7 +36,34 @@ window.Files = {
     return data?.signedUrl;
   },
 
-  _render() {
+  async preview(id) {
+    const file = this.list.find((f) => f.id === id);
+    if (!file) return;
+    const url = await this._url(file.file_path);
+    const box = document.getElementById("history-modal");
+    let body;
+    if (!url) {
+      body = `<p class="small">Kunne ikke åpne filen.</p>`;
+    } else if (file.file_type && file.file_type.startsWith("image/")) {
+      body = `<img src="${url}" style="max-width:100%; max-height:70vh; display:block; margin:0 auto">`;
+    } else if (file.file_type === "application/pdf") {
+      body = `<iframe src="${url}" style="width:100%; height:70vh; border:none"></iframe>`;
+    } else {
+      body = `<p class="small">Denne filtypen kan ikke forhåndsvises her.</p><a href="${url}" target="_blank"><button class="primary">Åpne / last ned</button></a>`;
+    }
+    box.innerHTML = `
+      <div class="panel" style="max-width:800px;margin:2rem auto;">
+        <div class="panel-head">
+          <button class="ghost" onclick="Files._renderList()">← ${Lang.t("files")}</button>
+          <span>${file.file_name}</span>
+          <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button>
+        </div>
+        <div class="panel-body">${body}</div>
+      </div>`;
+    box.classList.remove("hidden");
+  },
+
+  _renderList() {
     const box = document.getElementById("history-modal");
     const canWrite = Auth.canWrite();
     box.innerHTML = `
@@ -48,7 +75,7 @@ window.Files = {
             <tbody>
               ${this.list.map((f) => `
                 <tr>
-                  <td><a id="file-link-${f.id}" href="#" target="_blank">📎 ${f.file_name}</a></td>
+                  <td><a href="#" onclick="Files.preview('${f.id}'); return false;">📎 ${f.file_name}</a></td>
                   <td class="small">${f.log_entry_id ? Lang.t("file_source_log") : Lang.t("file_source_manual")}</td>
                   <td class="small">${f.uploaded_by_name || "–"}</td>
                   <td class="small mono">${new Date(f.uploaded_at).toLocaleString("no-NO")}</td>
@@ -66,10 +93,5 @@ window.Files = {
         </div>
       </div>`;
     box.classList.remove("hidden");
-    this.list.forEach(async (f) => {
-      const url = await this._url(f.file_path);
-      const link = document.getElementById(`file-link-${f.id}`);
-      if (link && url) link.href = url;
-    });
   },
 };

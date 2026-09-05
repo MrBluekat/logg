@@ -176,7 +176,7 @@ window.Admin = {
             </select>`}</td>
           <td>${u.role === "admin" ? "–" : `<input type="datetime-local" id="u-from-${u.id}" value="${this._toDatetimeLocal(u.active_from)}" style="min-width:170px">`}</td>
           <td>${u.role === "admin" ? "–" : `<input type="datetime-local" id="u-until-${u.id}" value="${this._toDatetimeLocal(u.active_until)}" style="min-width:170px">`}</td>
-          <td>
+          <td style="white-space:nowrap">
             ${u.role === "admin" ? "" : `<button class="ghost" onclick="Admin.saveUserRow('${u.id}')">${Lang.t("save_row")}</button>`}
             <button class="ghost" onclick="Admin.resetPassword('${u.id}')">${Lang.t("reset_password")}</button>
             <button class="danger" onclick="Admin.deleteUser('${u.id}')">${Lang.t("delete_user")}</button>
