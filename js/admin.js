@@ -2,6 +2,14 @@ window.Admin = {
   events: [],
   users: [],
 
+  toast(msg) {
+    const el = document.createElement("div");
+    el.textContent = msg;
+    el.style.cssText = "position:fixed;bottom:1.5rem;right:1.5rem;background:var(--success);color:#06131f;font-weight:600;padding:.6rem 1rem;border-radius:6px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.3)";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2200);
+  },
+
   async init() {
     await this.refreshEvents();
     await this.refreshUsers();
@@ -36,6 +44,7 @@ window.Admin = {
     await sb.from("events").insert({ name, event_date });
     await this.refreshEvents();
     this._renderUserForm();
+    this.toast("Arrangement opprettet");
   },
 
   _renderEvents() {
@@ -60,6 +69,7 @@ window.Admin = {
     await PDFExport.exportEvent(eventId, eventName);
     await sb.from("events").delete().eq("id", eventId);
     await this.refreshEvents();
+    this.toast("Arrangement arkivert og eksportert");
   },
 
   _renderUserForm() {
@@ -98,6 +108,7 @@ window.Admin = {
       const result = await resp.json();
       if (!resp.ok) { errEl.textContent = result.error || "Feil ved oppretting"; return; }
       await this.refreshUsers();
+      this.toast("Bruker opprettet");
     } catch (e) {
       errEl.textContent = "Kunne ikke nå funksjonen (sjekk at admin-create-user er deployet med CORS-støtte): " + e;
     }
@@ -115,7 +126,7 @@ window.Admin = {
       });
       const result = await resp.json();
       if (!resp.ok) { alert("Feil: " + (result.error || "ukjent feil")); return; }
-      alert("Passord oppdatert.");
+      this.toast("Passord oppdatert");
     } catch (e) {
       alert("Kunne ikke nå funksjonen: " + e);
     }
@@ -133,6 +144,7 @@ window.Admin = {
       const result = await resp.json();
       if (!resp.ok) { alert("Feil: " + (result.error || "ukjent feil")); return; }
       await this.refreshUsers();
+      this.toast("Bruker slettet");
     } catch (e) {
       alert("Kunne ikke nå funksjonen: " + e);
     }
@@ -150,6 +162,7 @@ window.Admin = {
     const { error } = await sb.from("profiles").update(payload).eq("id", userId);
     if (error) { alert("Feil: " + error.message); return; }
     await this.refreshUsers();
+    this.toast("Lagret");
   },
 
   _toDatetimeLocal(iso) {

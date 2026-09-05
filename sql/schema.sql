@@ -46,10 +46,12 @@ create table public.tasks (
   description       text not null,
   assigned_name     text,
   has_timer         boolean not null default false,
-  duration_seconds  integer,             -- opprinnelig varighet (brukes ved "nullstill")
-  remaining_seconds integer,             -- gjenstående tid når timeren er pauset/ikke startet
+  timer_mode        text not null default 'duration' check (timer_mode in ('duration','fixed_time')),
+  duration_seconds  integer,             -- opprinnelig varighet (brukes ved "nullstill"), kun timer_mode='duration'
+  remaining_seconds integer,             -- gjenstående tid når timeren er pauset/ikke startet, kun timer_mode='duration'
   timer_state       text not null default 'idle' check (timer_state in ('idle','running','paused')),
-  target_end_at     timestamptz,         -- satt når timeren kjører
+  target_end_at     timestamptz,         -- satt når timer_mode='duration' og timeren kjører
+  fixed_target_at   timestamptz,         -- absolutt tidspunkt å telle ned til, kun timer_mode='fixed_time'
   done              boolean not null default false,
   sort_order        integer not null default 0,
   created_at        timestamptz not null default now()

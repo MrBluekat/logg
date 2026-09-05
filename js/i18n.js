@@ -99,6 +99,7 @@ window.I18N = {
     tasks: "Oppgaver",
     task_has_timer: "Nedtellende timer",
     task_add: "Legg til oppgave",
+    task_assigned: "Ansvarlig",
   },
   en: {
     login_title: "Log in",
@@ -200,6 +201,7 @@ window.I18N = {
     tasks: "Tasks",
     task_has_timer: "Countdown timer",
     task_add: "Add task",
+    task_assigned: "Responsible",
   },
 };
 

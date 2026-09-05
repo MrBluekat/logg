@@ -28,7 +28,7 @@
 
   <div class="mobile-readonly-notice" id="mobile-notice" data-i18n="mobile_readonly"></div>
 
-  <div class="app-layout">
+  <div class="app-layout" id="app-layout">
     <div class="stack">
       <div class="panel desktop-only-write" id="entry-form-panel">
         <div class="panel-body" id="entry-form"></div>
@@ -42,7 +42,7 @@
       <div id="log-feed"></div>
     </div>
 
-    <div class="stack">
+    <div class="stack" id="right-panels">
       <div class="panel">
         <div class="panel-head" data-i18n="tasks">Oppgaver</div>
         <div class="panel-body">
@@ -50,15 +50,24 @@
           <div class="stack" id="tasks-add-form" style="margin-top:.7rem; gap:.4rem">
             <div class="row">
               <input id="task-description" placeholder="Beskrivelse" style="flex:2">
-              <input id="task-assigned" placeholder="Navn (valgfritt)" style="flex:1">
+              <input id="task-assigned" data-i18n-placeholder="task_assigned" placeholder="Ansvarlig" style="flex:1">
             </div>
             <label class="row" style="align-items:center; gap:.3rem">
-              <input type="checkbox" id="task-has-timer" onchange="document.getElementById('task-timer-inputs').classList.toggle('hidden', !this.checked)">
+              <input type="checkbox" id="task-has-timer" onchange="document.getElementById('task-timer-block').classList.toggle('hidden', !this.checked)">
               <span data-i18n="task_has_timer">Nedtellende timer</span>
             </label>
-            <div class="row hidden" id="task-timer-inputs">
-              <input id="task-timer-hours" type="number" min="0" placeholder="t" style="width:60px">
-              <input id="task-timer-minutes" type="number" min="0" placeholder="min" style="width:60px">
+            <div class="stack hidden" id="task-timer-block" style="gap:.4rem">
+              <select id="task-timer-mode" onchange="updateTaskTimerInputs()">
+                <option value="duration" data-i18n="timer_type_countdown_duration">Nedtelling (varighet)</option>
+                <option value="fixed_time" data-i18n="timer_type_countdown_to">Nedtelling til tidspunkt</option>
+              </select>
+              <div class="row" id="task-duration-inputs">
+                <input id="task-timer-hours" type="number" min="0" placeholder="t" style="width:60px">
+                <input id="task-timer-minutes" type="number" min="0" placeholder="min" style="width:60px">
+              </div>
+              <div class="row hidden" id="task-fixed-inputs">
+                <input id="task-timer-target" type="datetime-local" style="flex:1">
+              </div>
             </div>
             <button onclick="Tasks.add()" data-i18n="task_add">Legg til oppgave</button>
           </div>
@@ -117,6 +126,11 @@
       document.getElementById("timer-duration-inputs").classList.toggle("hidden", type !== "countdown_duration");
       document.getElementById("timer-target-inputs").classList.toggle("hidden", type !== "countdown_to");
     }
+    function updateTaskTimerInputs() {
+      const mode = document.getElementById("task-timer-mode").value;
+      document.getElementById("task-duration-inputs").classList.toggle("hidden", mode !== "duration");
+      document.getElementById("task-fixed-inputs").classList.toggle("hidden", mode !== "fixed_time");
+    }
     function addTimer() {
       const name = document.getElementById("new-timer-name").value;
       const type = document.getElementById("new-timer-type").value;
@@ -146,7 +160,8 @@
       document.getElementById("user-fullname").textContent = Auth.profile.full_name;
       if (!Auth.canWrite()) {
         document.getElementById("entry-form-panel").classList.add("hidden");
-        document.getElementById("tasks-add-form").classList.add("hidden");
+        document.getElementById("right-panels").classList.add("hidden");
+        document.getElementById("app-layout").style.gridTemplateColumns = "1fr";
       }
       if (Auth.isAdmin()) {
         document.getElementById("admin-back-link").innerHTML = `<a href="admin.html"><button class="ghost">Til adminpanel</button></a> `;

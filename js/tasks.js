@@ -33,20 +33,35 @@ window.Tasks = {
     const description = document.getElementById("task-description").value.trim();
     const assigned_name = document.getElementById("task-assigned").value.trim();
     const hasTimer = document.getElementById("task-has-timer").checked;
-    const hours = parseFloat(document.getElementById("task-timer-hours").value || "0");
-    const minutes = parseFloat(document.getElementById("task-timer-minutes").value || "0");
+    const mode = document.getElementById("task-timer-mode").value;
     if (!description) return;
-    const duration = hasTimer ? Math.max(0, Math.round(hours * 3600 + minutes * 60)) : null;
-    const sort_order = await this._nextSortOrder();
-    await sb.from("tasks").insert({
+
+    const payload = {
       event_id: Auth.event.id, description, assigned_name: assigned_name || null,
-      has_timer: hasTimer, duration_seconds: duration, remaining_seconds: duration,
-      sort_order,
-    });
+      has_timer: hasTimer, sort_order: await this._nextSortOrder(),
+    };
+
+    if (hasTimer && mode === "fixed_time") {
+      const target = document.getElementById("task-timer-target").value;
+      if (target) {
+        payload.timer_mode = "fixed_time";
+        payload.fixed_target_at = new Date(target).toISOString();
+      }
+    } else if (hasTimer) {
+      const hours = parseFloat(document.getElementById("task-timer-hours").value || "0");
+      const minutes = parseFloat(document.getElementById("task-timer-minutes").value || "0");
+      const duration = Math.max(0, Math.round(hours * 3600 + minutes * 60));
+      payload.timer_mode = "duration";
+      payload.duration_seconds = duration;
+      payload.remaining_seconds = duration;
+    }
+
+    await sb.from("tasks").insert(payload);
     document.getElementById("task-description").value = "";
     document.getElementById("task-assigned").value = "";
     document.getElementById("task-timer-hours").value = "";
     document.getElementById("task-timer-minutes").value = "";
+    document.getElementById("task-timer-target").value = "";
     await this.load();
     this._render();
   },
@@ -102,6 +117,9 @@ window.Tasks = {
   },
 
   _displaySeconds(t) {
+    if (t.timer_mode === "fixed_time" && t.fixed_target_at) {
+      return Math.max(0, Math.round((new Date(t.fixed_target_at).getTime() - Date.now()) / 1000));
+    }
     if (t.timer_state === "running" && t.target_end_at) {
       return Math.max(0, Math.round((new Date(t.target_end_at).getTime() - Date.now()) / 1000));
     }
@@ -119,7 +137,7 @@ window.Tasks = {
         </span>
         ${t.has_timer ? `
           <span class="display">${this._fmt(this._displaySeconds(t))}</span>
-          ${canWrite ? `
+          ${canWrite && t.timer_mode !== "fixed_time" ? `
             ${t.timer_state === "running"
               ? `<button class="ghost" onclick="Tasks.pauseTimer('${t.id}')">${Lang.t("pause")}</button>`
               : `<button class="ghost" onclick="Tasks.startTimer('${t.id}')">${Lang.t("start")}</button>`}
