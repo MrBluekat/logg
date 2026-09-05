@@ -18,6 +18,7 @@
     </div>
     <div class="userinfo">
       <strong id="user-fullname">–</strong><br>
+      <span id="admin-back-link"></span>
       <button class="ghost" onclick="Auth.logout()" data-i18n="logout">Logg ut</button>
     </div>
   </div>
@@ -89,10 +90,24 @@
 
     (async () => {
       await Auth.requireSession();
-      if (Auth.isAdmin()) { window.location.href = "admin.html"; return; }
+
+      // Admin har ikke et fast event_id - de velger arrangement via ?event=... fra adminpanelet.
+      const params = new URLSearchParams(window.location.search);
+      const eventParam = params.get("event");
+
+      if (Auth.isAdmin()) {
+        if (!eventParam) { window.location.href = "admin.html"; return; }
+        const { data: ev } = await sb.from("events").select("*").eq("id", eventParam).single();
+        if (!ev) { document.body.innerHTML = "<p style='padding:2rem'>Fant ikke arrangementet.</p>"; return; }
+        Auth.event = ev;
+      }
+
       if (!Auth.event) { document.body.innerHTML = "<p style='padding:2rem'>Ingen arrangement tilknyttet denne brukeren.</p>"; return; }
       document.getElementById("event-name").textContent = Auth.event.name;
       document.getElementById("user-fullname").textContent = Auth.profile.full_name;
+      if (Auth.isAdmin()) {
+        document.getElementById("admin-back-link").innerHTML = `<a href="admin.html"><button class="ghost">Til adminpanel</button></a> `;
+      }
       Lang.apply();
       Clock.start("clock");
       Timers.init("timer-list");
