@@ -28,6 +28,7 @@ let profile = null;      // { id, full_name, role, event_id }
 let currentEvent = null; // { id, name, active_from, active_until }
 let currentTab = "logg";
 let selectedFiles = [];
+let activeChannels = [];
 
 function canWrite() {
   return profile && (profile.role === "admin" || profile.role === "logger");
@@ -49,6 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 db.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT") {
+    unsubscribeRealtime();
     el("screen-app").classList.add("hidden");
     el("screen-event-picker").classList.add("hidden");
     el("screen-login").classList.remove("hidden");
@@ -102,6 +104,19 @@ function wireUpEvents() {
   el("new-contact-form").addEventListener("submit", saveNewContact);
 
   el("push-enable-btn").addEventListener("click", enablePush);
+  el("logout-btn").addEventListener("click", logout);
+  el("logout-btn-picker").addEventListener("click", logout);
+  el("switch-event-btn").addEventListener("click", () => {
+    unsubscribeRealtime();
+    showEventPicker();
+  });
+}
+
+async function logout() {
+  unsubscribeRealtime();
+  profile = null;
+  currentEvent = null;
+  await db.auth.signOut();
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +176,7 @@ async function enterApp() {
   el("screen-app").classList.remove("hidden");
   el("event-name-label").textContent = currentEvent ? currentEvent.name : "";
   el("fab-new").style.display = canWrite() ? "flex" : "none";
+  el("switch-event-btn").classList.toggle("hidden", profile.role !== "admin");
 
   await Promise.all([loadEntries(), loadTasks(), loadContacts()]);
   subscribeRealtime();
@@ -178,16 +194,24 @@ function switchTab(tab) {
 }
 
 function subscribeRealtime() {
-  db.channel("pwa-log-" + currentEvent.id)
+  unsubscribeRealtime();
+  const ch1 = db.channel("pwa-log-" + currentEvent.id)
     .on("postgres_changes", { event: "*", schema: "public", table: "log_entries", filter: `event_id=eq.${currentEvent.id}` }, loadEntries)
     .on("postgres_changes", { event: "*", schema: "public", table: "log_comments" }, loadEntries)
     .subscribe();
-  db.channel("pwa-tasks-" + currentEvent.id)
+  const ch2 = db.channel("pwa-tasks-" + currentEvent.id)
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `event_id=eq.${currentEvent.id}` }, loadTasks)
     .subscribe();
-  db.channel("pwa-contacts-" + currentEvent.id)
+  const ch3 = db.channel("pwa-contacts-" + currentEvent.id)
     .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `event_id=eq.${currentEvent.id}` }, loadContacts)
     .subscribe();
+  activeChannels = [ch1, ch2, ch3];
+}
+
+function unsubscribeRealtime() {
+  activeChannels.forEach((ch) => db.removeChannel(ch));
+  activeChannels = [];
+  if (window._taskTicker) { clearInterval(window._taskTicker); window._taskTicker = null; }
 }
 
 // ---------------------------------------------------------------------------

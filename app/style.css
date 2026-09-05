@@ -579,3 +579,24 @@ nav.tab-bar button.active {
   display: none;
 }
 #screen-event-picker:not(.hidden) { display: flex; flex-direction: column; }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.icon-btn:active { opacity: 0.8; }

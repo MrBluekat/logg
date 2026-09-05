@@ -37,8 +37,13 @@
 <!-- ============== VELG ARRANGEMENT (kun admin) ============== -->
 <section id="screen-event-picker" class="hidden">
   <div style="padding:32px 28px">
-    <h1 style="font-size:20px;margin:0 0 4px">Velg arrangement</h1>
-    <p class="sub" style="margin:0 0 20px">Du er admin og kan velge hvilket arrangement du vil se</p>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start">
+      <div>
+        <h1 style="font-size:20px;margin:0 0 4px">Velg arrangement</h1>
+        <p class="sub" style="margin:0 0 20px">Du er admin og kan velge hvilket arrangement du vil se</p>
+      </div>
+      <button class="icon-btn" id="logout-btn-picker" title="Logg ut">⎋</button>
+    </div>
     <ul class="item-list" id="event-picker-list"></ul>
   </div>
 </section>
@@ -51,7 +56,11 @@
       <h2 id="header-title">Logg</h2>
       <div class="event-name-sub" id="event-name-label"></div>
     </div>
-    <span class="status-dot" id="status-dot">Tilkoblet</span>
+    <div class="header-actions">
+      <span class="status-dot" id="status-dot">Tilkoblet</span>
+      <button class="icon-btn hidden" id="switch-event-btn" title="Bytt arrangement">🔀</button>
+      <button class="icon-btn" id="logout-btn" title="Logg ut">⎋</button>
+    </div>
   </header>
 
   <div id="push-banner" class="hidden">
