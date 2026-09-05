@@ -17,3 +17,4 @@ const CONFIG = {
   // Public VAPID-nøkkel for push-varsler (genereres én gang, se SETUP.md steg 5)
   VAPID_PUBLIC_KEY: "DIN-VAPID-PUBLIC-KEY",
 };
+  LOGIN_EMAIL_DOMAIN: "arrangementslogg.local",
