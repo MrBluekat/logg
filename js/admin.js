@@ -33,6 +33,8 @@ window.Admin = {
     document.getElementById("event-form").innerHTML = `
       <div class="field"><label>${Lang.t("event_name")}</label><input id="ev-name"></div>
       <div class="field"><label>${Lang.t("event_date")}</label><input type="date" id="ev-date"></div>
+      <div class="field"><label>${Lang.t("active_from")}</label><input type="datetime-local" id="ev-active-from"></div>
+      <div class="field"><label>${Lang.t("active_until")}</label><input type="datetime-local" id="ev-active-until"></div>
       <button class="primary" onclick="Admin.createEvent()">${Lang.t("create")}</button>
     `;
   },
@@ -40,8 +42,14 @@ window.Admin = {
   async createEvent() {
     const name = document.getElementById("ev-name").value.trim();
     const event_date = document.getElementById("ev-date").value || null;
+    const activeFromVal = document.getElementById("ev-active-from").value;
+    const activeUntilVal = document.getElementById("ev-active-until").value;
     if (!name) return;
-    await sb.from("events").insert({ name, event_date });
+    await sb.from("events").insert({
+      name, event_date,
+      active_from: activeFromVal ? new Date(activeFromVal).toISOString() : null,
+      active_until: activeUntilVal ? new Date(activeUntilVal).toISOString() : null,
+    });
     await this.refreshEvents();
     this._renderUserForm();
     this.toast("Arrangement opprettet");

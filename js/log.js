@@ -1,11 +1,14 @@
 window.Log = {
-  CATEGORIES: ["Loggforing", "Utvisning", "Medisinsk hendelse", "Hendelse", "Prioritert hendelse"],
+  CATEGORIES: ["Loggforing", "Utvisning", "Medisinsk hendelse", "Hendelse", "Prioritert hendelse", "Scene", "Vaer", "Publikumstall"],
   CATEGORY_LABELS: {
     "Loggforing": "Loggføring",
     "Utvisning": "Utvisning",
     "Medisinsk hendelse": "Medisinsk hendelse",
     "Hendelse": "Hendelse",
     "Prioritert hendelse": "Prioritert hendelse",
+    "Scene": "Scene",
+    "Vaer": "Vær",
+    "Publikumstall": "Publikumstall",
   },
   NOTIFY_OPTIONS: ["Politi", "AMK", "Brannvesenet", "Sikkerhetsleder", "Krisegruppen"],
   entries: [],

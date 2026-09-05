@@ -12,6 +12,8 @@ create table public.events (
   id           uuid primary key default gen_random_uuid(),
   name         text not null,
   event_date   date,
+  active_from  timestamptz,     -- når arrangementet regnes som aktivt fra (brukes til statistikk)
+  active_until timestamptz,     -- når arrangementet regnes som aktivt til (brukes til statistikk)
   status       text not null default 'active' check (status in ('active','archived')),
   next_seq     integer not null default 1,          -- brukes til å generere H-001, H-002 osv per arrangement
   created_at   timestamptz not null default now()
