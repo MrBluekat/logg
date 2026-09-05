@@ -12,6 +12,7 @@
     <div class="clock" id="clock">--:--:--</div>
     <div class="topbar-spacer"></div>
     <div class="lang-theme-toggle">
+      <button class="ghost" onclick="Contacts.open()">📇 Kontaktliste</button>
       <button class="ghost" onclick="Lang.set('no'); rerender()">NO</button>
       <button class="ghost" onclick="Lang.set('en'); rerender()">EN</button>
       <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
@@ -75,6 +76,7 @@
   <script src="js/dashboard.js"></script>
   <script src="js/log.js"></script>
   <script src="js/pdfExport.js"></script>
+  <script src="js/contacts.js"></script>
   <script>
     function rerender() {
       Lang.apply();

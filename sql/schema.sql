@@ -24,6 +24,17 @@ create table public.locations (
   name       text not null
 );
 
+-- Kontaktliste per arrangement (navn, telefon, e-post, organisasjon)
+create table public.contacts (
+  id           uuid primary key default gen_random_uuid(),
+  event_id     uuid not null references public.events(id) on delete cascade,
+  name         text not null,
+  phone        text,
+  email        text,
+  organization text,
+  created_at   timestamptz not null default now()
+);
+
 -- ----------------------------------------------------------------------------
 -- PROFILES (kobles 1:1 til auth.users)
 -- ----------------------------------------------------------------------------
@@ -186,6 +197,16 @@ create policy "locations: admin/logger oppretter" on public.locations
   for insert with check (public.current_role_name() in ('admin','logger') and (public.current_role_name() = 'admin' or event_id = public.current_event_id()));
 create policy "locations: admin sletter" on public.locations
   for delete using (public.current_role_name() = 'admin');
+
+-- CONTACTS
+create policy "contacts: se eget arrangement" on public.contacts
+  for select using (public.current_role_name() = 'admin' or event_id = public.current_event_id());
+create policy "contacts: admin/logger oppretter" on public.contacts
+  for insert with check (public.current_role_name() in ('admin','logger') and (public.current_role_name() = 'admin' or event_id = public.current_event_id()));
+create policy "contacts: admin/logger endrer" on public.contacts
+  for update using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
+create policy "contacts: admin/logger sletter" on public.contacts
+  for delete using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
 
 -- LOG ENTRIES
 create policy "log: se eget arrangement" on public.log_entries
