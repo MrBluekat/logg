@@ -85,6 +85,7 @@ window.I18N = {
     contact_email: "E-post",
     contact_org: "Organisasjon",
     contact_add: "Legg til kontakt",
+    contact_add_divider: "Legg til skillestrek",
   },
   en: {
     login_title: "Log in",
@@ -172,6 +173,7 @@ window.I18N = {
     contact_email: "Email",
     contact_org: "Organization",
     contact_add: "Add contact",
+    contact_add_divider: "Add divider",
   },
 };
 

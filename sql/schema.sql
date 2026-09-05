@@ -32,6 +32,8 @@ create table public.contacts (
   phone        text,
   email        text,
   organization text,
+  is_divider   boolean not null default false,   -- true = skillestrek/gruppeoverskrift (kun "name" brukes da)
+  sort_order   integer not null default 0,        -- brukes til å bestemme rekkefølgen i listen
   created_at   timestamptz not null default now()
 );
 
@@ -235,6 +237,11 @@ create policy "log: admin endrer alt, logger endrer eget innen 5 min" on public.
 -- LOG EDIT HISTORY
 create policy "historikk: se eget arrangement" on public.log_edit_history
   for select using (
+    public.current_role_name() = 'admin'
+    or exists (select 1 from public.log_entries e where e.id = log_entry_id and e.event_id = public.current_event_id())
+  );
+create policy "historikk: system oppretter" on public.log_edit_history
+  for insert with check (
     public.current_role_name() = 'admin'
     or exists (select 1 from public.log_entries e where e.id = log_entry_id and e.event_id = public.current_event_id())
   );
