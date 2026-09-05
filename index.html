@@ -1,75 +1,132 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="no">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arrangementslogg – Logg inn</title>
-<link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Arrangementslogg</title>
+<meta name="theme-color" content="#0F1620" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/favicon-32.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="topbar">
-    <span class="event-name">Arrangementslogg</span>
-    <div class="topbar-spacer"></div>
-    <div class="lang-theme-toggle">
-      <button class="ghost" onclick="Lang.set('no')">NO</button>
-      <button class="ghost" onclick="Lang.set('en')">EN</button>
-      <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
+
+<!-- ===================== LOGIN ===================== -->
+<section id="screen-login">
+  <img src="icons/icon-192.png" class="login-mark" alt="" />
+  <h1>Arrangementslogg</h1>
+  <p class="sub">Logg inn for å se logg og oppgaver</p>
+
+  <form id="login-form">
+    <div class="field">
+      <label for="login-email">Brukernavn</label>
+      <input type="text" id="login-email" autocomplete="username" autocapitalize="off" autocorrect="off" required />
     </div>
+    <div class="field">
+      <label for="login-password">Passord</label>
+      <input type="password" id="login-password" autocomplete="current-password" required />
+    </div>
+    <button type="submit" class="btn-primary" id="login-btn">Logg inn</button>
+    <div id="login-error"></div>
+  </form>
+</section>
+
+<!-- ===================== APP ===================== -->
+<section id="screen-app" class="hidden">
+
+  <header class="app-header">
+    <h2 id="header-title">Logg</h2>
+    <span class="status-dot" id="status-dot">Tilkoblet</span>
+  </header>
+
+  <div id="push-banner" class="hidden">
+    <span>Aktiver push-varsler for kritiske hendelser</span>
+    <button id="push-enable-btn">Aktiver</button>
   </div>
 
-  <div class="login-wrap">
-    <div class="panel login-box">
-      <h1 data-i18n="login_title">Logg inn</h1>
-      <div class="field">
-        <label data-i18n="username">Brukernavn</label>
-        <input id="username" autocomplete="username">
-      </div>
-      <div class="field">
-        <label data-i18n="password">Passord</label>
-        <input id="password" type="password" autocomplete="current-password">
-      </div>
-      <button class="primary" style="width:100%" onclick="doLogin()" data-i18n="login_btn">Logg inn</button>
-      <div id="login-error" class="error-text"></div>
+  <main class="tab-content">
+
+    <!-- LOGG -->
+    <div class="tab-panel active" id="tab-logg">
+      <div class="list-heading">Siste hendelser</div>
+      <ul class="item-list" id="logg-list"></ul>
+      <div class="empty-state hidden" id="logg-empty">Ingen hendelser registrert ennå.</div>
     </div>
+
+    <!-- OPPGAVER -->
+    <div class="tab-panel" id="tab-oppgaver">
+      <div class="list-heading">Oppgaver</div>
+      <ul class="item-list" id="oppgaver-list"></ul>
+      <div class="empty-state hidden" id="oppgaver-empty">Ingen oppgaver akkurat nå.</div>
+    </div>
+
+  </main>
+
+  <button class="fab" id="fab-new" title="Ny hendelse">+</button>
+
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="logg">
+      <span class="dot"></span>
+      Logg
+    </button>
+    <button class="tab-btn" data-tab="oppgaver">
+      <span class="dot"></span>
+      Oppgaver
+    </button>
+  </nav>
+</section>
+
+<!-- ===================== NY HENDELSE (sheet) ===================== -->
+<div class="sheet-backdrop hidden" id="new-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Ny hendelse</h3>
+    <form id="new-form">
+      <div class="field">
+        <label for="new-kategori">Kategori</label>
+        <select id="new-kategori">
+          <option value="Medisinsk">Medisinsk</option>
+          <option value="Bråk">Bråk</option>
+          <option value="Tap/funn">Tap/funn</option>
+          <option value="Brann">Brann</option>
+          <option value="Teknisk">Teknisk</option>
+          <option value="Annet">Annet</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="new-alvorlighet">Alvorlighet</label>
+        <select id="new-alvorlighet">
+          <option value="lav">Lav</option>
+          <option value="middels" selected>Middels</option>
+          <option value="hoy">Høy</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="new-beskrivelse">Beskrivelse</label>
+        <textarea id="new-beskrivelse" placeholder="Hva skjedde?" required></textarea>
+      </div>
+      <div class="field">
+        <label class="photo-input-label" for="new-photo">
+          📷 Legg til bilde (valgfritt)
+        </label>
+        <input type="file" id="new-photo" accept="image/*" capture="environment" class="hidden" />
+        <img id="photo-preview" alt="" />
+      </div>
+      <div class="sheet-actions">
+        <button type="button" class="btn-secondary" id="cancel-new">Avbryt</button>
+        <button type="submit" class="btn-primary" id="save-new">Lagre hendelse</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/auth.js"></script>
-  <script>
-    Lang.apply();
-    // Vis beskjed hvis vi ble sendt hit fordi kontoen er utenfor sitt gyldige tidsrom
-    if (new URLSearchParams(window.location.search).get("deactivated") === "1") {
-      document.getElementById("login-error").textContent = Lang.t("account_deactivated");
-    }
-    document.getElementById("password").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+<div class="toast hidden" id="toast"></div>
 
-    async function doLogin() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const { error } = await Auth.login(username, password);
-      if (error) {
-        document.getElementById("login-error").textContent = Lang.t("login_error");
-        return;
-      }
-      const profile = await Auth.loadProfile();
-      if (profile && !Auth._isActive(profile)) {
-        await sb.auth.signOut();
-        document.getElementById("login-error").textContent = Lang.t("account_deactivated");
-        return;
-      }
-      window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
-    }
-
-    // Hvis allerede innlogget, send videre
-    (async () => {
-      const { data } = await sb.auth.getSession();
-      if (data.session) {
-        await Auth.loadProfile();
-        window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
-      }
-    })();
-  </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
