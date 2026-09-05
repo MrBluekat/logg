@@ -44,6 +44,28 @@
 
     <div class="stack">
       <div class="panel">
+        <div class="panel-head" data-i18n="tasks">Oppgaver</div>
+        <div class="panel-body">
+          <div class="timer-list" id="task-list"></div>
+          <div class="stack" id="tasks-add-form" style="margin-top:.7rem; gap:.4rem">
+            <div class="row">
+              <input id="task-description" placeholder="Beskrivelse" style="flex:2">
+              <input id="task-assigned" placeholder="Navn (valgfritt)" style="flex:1">
+            </div>
+            <label class="row" style="align-items:center; gap:.3rem">
+              <input type="checkbox" id="task-has-timer" onchange="document.getElementById('task-timer-inputs').classList.toggle('hidden', !this.checked)">
+              <span data-i18n="task_has_timer">Nedtellende timer</span>
+            </label>
+            <div class="row hidden" id="task-timer-inputs">
+              <input id="task-timer-hours" type="number" min="0" placeholder="t" style="width:60px">
+              <input id="task-timer-minutes" type="number" min="0" placeholder="min" style="width:60px">
+            </div>
+            <button onclick="Tasks.add()" data-i18n="task_add">Legg til oppgave</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
         <div class="panel-head" data-i18n="timers">Tid</div>
         <div class="panel-body">
           <div class="timer-list" id="timer-list"></div>
@@ -84,6 +106,7 @@
   <script src="js/pdfExport.js"></script>
   <script src="js/contacts.js"></script>
   <script src="js/files.js"></script>
+  <script src="js/tasks.js"></script>
   <script>
     function rerender() {
       Lang.apply();
@@ -121,6 +144,10 @@
       if (!Auth.event) { document.body.innerHTML = "<p style='padding:2rem'>Ingen arrangement tilknyttet denne brukeren.</p>"; return; }
       document.getElementById("event-name").textContent = Auth.event.name;
       document.getElementById("user-fullname").textContent = Auth.profile.full_name;
+      if (!Auth.canWrite()) {
+        document.getElementById("entry-form-panel").classList.add("hidden");
+        document.getElementById("tasks-add-form").classList.add("hidden");
+      }
       if (Auth.isAdmin()) {
         document.getElementById("admin-back-link").innerHTML = `<a href="admin.html"><button class="ghost">Til adminpanel</button></a> `;
       }
@@ -128,8 +155,8 @@
       Clock.start("clock");
       Timers.init("timer-list");
       updateTimerInputs();
+      await Tasks.init("task-list");
       await Log.init();
-      if (!Auth.canWrite()) document.getElementById("entry-form-panel").classList.add("hidden");
     })();
   </script>
 </body>

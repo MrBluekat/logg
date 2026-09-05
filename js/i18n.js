@@ -96,6 +96,9 @@ window.I18N = {
     file_uploaded_at: "Tidspunkt",
     file_upload_manual: "Last opp fil(er) manuelt",
     file_upload_btn: "Last opp",
+    tasks: "Oppgaver",
+    task_has_timer: "Nedtellende timer",
+    task_add: "Legg til oppgave",
   },
   en: {
     login_title: "Log in",
@@ -194,6 +197,9 @@ window.I18N = {
     file_uploaded_at: "Timestamp",
     file_upload_manual: "Upload file(s) manually",
     file_upload_btn: "Upload",
+    tasks: "Tasks",
+    task_has_timer: "Countdown timer",
+    task_add: "Add task",
   },
 };
 

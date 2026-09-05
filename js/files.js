@@ -45,9 +45,11 @@ window.Files = {
     if (!url) {
       body = `<p class="small">Kunne ikke åpne filen.</p>`;
     } else if (file.file_type && file.file_type.startsWith("image/")) {
-      body = `<img src="${url}" style="max-width:100%; max-height:70vh; display:block; margin:0 auto">`;
+      body = `<img src="${url}" style="max-width:100%; max-height:70vh; display:block; margin:0 auto 1rem">
+        <a href="${url}" target="_blank"><button class="ghost">↗ Åpne i egen fane</button></a>`;
     } else if (file.file_type === "application/pdf") {
-      body = `<iframe src="${url}" style="width:100%; height:70vh; border:none"></iframe>`;
+      body = `<iframe src="${url}" style="width:100%; height:65vh; border:none; margin-bottom:1rem"></iframe>
+        <a href="${url}" target="_blank"><button class="ghost">↗ Åpne i egen fane</button></a>`;
     } else {
       body = `<p class="small">Denne filtypen kan ikke forhåndsvises her.</p><a href="${url}" target="_blank"><button class="primary">Åpne / last ned</button></a>`;
     }

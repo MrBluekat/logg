@@ -37,6 +37,24 @@ create table public.contacts (
   created_at   timestamptz not null default now()
 );
 
+-- Oppgaver per arrangement, med valgfri nedtellende timer per oppgave.
+-- Timeren styres via target_end_at (når den kjører) i stedet for å skrive til
+-- databasen hvert sekund - klienten regner ut gjenstående tid selv, likt "Tid".
+create table public.tasks (
+  id                uuid primary key default gen_random_uuid(),
+  event_id          uuid not null references public.events(id) on delete cascade,
+  description       text not null,
+  assigned_name     text,
+  has_timer         boolean not null default false,
+  duration_seconds  integer,             -- opprinnelig varighet (brukes ved "nullstill")
+  remaining_seconds integer,             -- gjenstående tid når timeren er pauset/ikke startet
+  timer_state       text not null default 'idle' check (timer_state in ('idle','running','paused')),
+  target_end_at     timestamptz,         -- satt når timeren kjører
+  done              boolean not null default false,
+  sort_order        integer not null default 0,
+  created_at        timestamptz not null default now()
+);
+
 -- ----------------------------------------------------------------------------
 -- PROFILES (kobles 1:1 til auth.users)
 -- ----------------------------------------------------------------------------
@@ -211,6 +229,16 @@ create policy "contacts: admin/logger oppretter" on public.contacts
 create policy "contacts: admin/logger endrer" on public.contacts
   for update using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
 create policy "contacts: admin/logger sletter" on public.contacts
+  for delete using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
+
+-- TASKS
+create policy "tasks: se eget arrangement" on public.tasks
+  for select using (public.current_role_name() = 'admin' or event_id = public.current_event_id());
+create policy "tasks: admin/logger oppretter" on public.tasks
+  for insert with check (public.current_role_name() in ('admin','logger') and (public.current_role_name() = 'admin' or event_id = public.current_event_id()));
+create policy "tasks: admin/logger endrer" on public.tasks
+  for update using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
+create policy "tasks: admin/logger sletter" on public.tasks
   for delete using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
 
 -- LOG ENTRIES
