@@ -21,6 +21,11 @@ const CATEGORY_LABELS = {
   Publikumstall: "Publikumstall",
 };
 
+const BEREDSKAP_LABELS = { gronn: "Grønt beredskapsnivå", gul: "Gult beredskapsnivå", rod: "Rødt beredskapsnivå" };
+const BEREDSKAP_COLORS = { gronn: "#3dbe7b", gul: "#e8c93d", rod: "#e5595e" };
+const SCENE_LABELS = { gronn: "Grønn scene", gul: "Gul scene", oransje: "Oransje scene", rod: "Rød scene" };
+const SCENE_COLORS = { gronn: "#3dbe7b", gul: "#e8c93d", oransje: "#e8873d", rod: "#e5595e" };
+
 // ---------------------------------------------------------------------------
 // Global tilstand
 // ---------------------------------------------------------------------------
@@ -269,6 +274,10 @@ function entryRow(row) {
     ${row.action_taken ? `<div class="beskrivelse">Tiltak: ${escapeHtml(row.action_taken)}</div>` : ""}
     <div class="meta-line">${statusBadge} ${metaBits.length ? `<span class="meta-text">${metaBits.join(" · ")}</span>` : ""}</div>
     ${row.notified?.length ? `<div class="meta-line"><span class="meta-text">Varslet: ${row.notified.join(", ")}</span></div>` : ""}
+    ${(row.beredskapsniva || row.scene_farge) ? `<div class="meta-line">
+      ${row.beredskapsniva ? `<span class="badge-color" style="color:${BEREDSKAP_COLORS[row.beredskapsniva]}">${BEREDSKAP_LABELS[row.beredskapsniva]}</span>` : ""}
+      ${row.scene_farge ? `<span class="badge-color" style="color:${SCENE_COLORS[row.scene_farge]}">${SCENE_LABELS[row.scene_farge]}</span>` : ""}
+    </div>` : ""}
     <div class="attachments-row" id="att-${row.id}"></div>
     ${row.entry_kind === "hendelse" ? `
       <div class="comment-list">
@@ -353,6 +362,8 @@ async function saveNewEntry(e) {
   try {
     const kind = el("new-kind").value;
     const notified = Array.from(document.querySelectorAll(".notify-cb:checked")).map((c) => c.value);
+    const beredskapsniva = document.querySelector('input[name="new-beredskap"]:checked')?.value || null;
+    const scene_farge = document.querySelector('input[name="new-scene"]:checked')?.value || null;
     const { data: { user } } = await db.auth.getUser();
 
     const { data: created, error } = await db.from("log_entries").insert({
@@ -364,6 +375,8 @@ async function saveNewEntry(e) {
       description: el("new-beskrivelse").value.trim(),
       action_taken: el("new-tiltak").value.trim() || null,
       notified,
+      beredskapsniva,
+      scene_farge,
       status: kind === "hendelse" ? "pagaende" : "avsluttet",
       created_by: user.id,
       created_by_name: profile.full_name,

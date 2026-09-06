@@ -65,14 +65,16 @@ trenger det ennå.
    supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:din@epost.no
    ```
 
-4. Send et varsel når en **prioritert hendelse** opprettes: enklest er en **Database Webhook** i
+4. Send et varsel automatisk når en **prioritert hendelse**, endring av **beredskapsnivå**, eller
+   endring av **scenefarge** registreres. Dette settes opp med én enkelt **Database Webhook** i
    Supabase Dashboard (Database → Webhooks → Create a new hook):
-   - Table: `log_entries`, Event: `Insert`
-   - Type: HTTP Request → URL til din `send-push`-funksjon
-   - Legg ved en betingelse/filter på `category = 'Prioritert hendelse'` (eller filtrer i selve
-     edge-funksjonen basert på payloadet den mottar)
-   - Send med `event_id` fra den nye raden i requesten, slik at kun de som abonnerer på akkurat
-     det arrangementet varsles
+   - Table: `log_entries`, Event: kun `Insert`
+   - Type: HTTP Request → URL til din `send-push`-funksjon (`https://DITT-PROSJEKT.supabase.co/functions/v1/send-push`)
+   - Ingen ekstra filter nødvendig - funksjonen sjekker selv om raden som akkurat ble satt inn har
+     `category = 'Prioritert hendelse'`, eller et satt `beredskapsniva`/`scene_farge`, og sender
+     kun varsel når minst ett av disse stemmer. Alle andre loggføringer ignoreres stille.
+   - Varselet sendes til alle som har aktivert push for akkurat det arrangementet
+     (`event_id` hentes automatisk fra raden som ble satt inn)
 
 ## 4. Test
 - Logg inn med en ekte bruker fra Supabase Auth (samme brukernavn/passord som på hovedsiden)
