@@ -227,6 +227,7 @@ async function enterApp() {
   el("event-name-label").textContent = currentEvent ? currentEvent.name : "";
   el("fab-new").style.display = canWrite() ? "flex" : "none";
   el("switch-event-btn").classList.toggle("hidden", profile.role !== "admin");
+  el("send-message-btn").classList.toggle("hidden", !canWrite());
 
   await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications()]);
   subscribeRealtime();
@@ -708,15 +709,18 @@ function openComposeSheet() {
   const select = el("message-recipient-select");
   const others = eventUsers.filter((u) => u.id !== profile.id);
   select.innerHTML = others.map((u) => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join("") || `<option value="">–</option>`;
+  select.disabled = false;
+  el("message-send-all").checked = false;
   el("compose-sheet").classList.remove("hidden");
 }
 
 async function sendComposeMessage(e) {
   e.preventDefault();
+  const sendAll = el("message-send-all").checked;
   const recipientId = el("message-recipient-select").value;
   const text = el("message-text").value.trim();
-  if (!recipientId || !text) return;
-  await notifyUser(recipientId, currentEvent.id, `Melding fra ${profile.full_name}`, text);
+  if ((!sendAll && !recipientId) || !text) return;
+  await notifyUser(sendAll ? null : recipientId, currentEvent.id, `Melding fra ${profile.full_name}`, text);
   el("compose-sheet").classList.add("hidden");
   el("compose-form").reset();
   showToast("Melding sendt");

@@ -69,7 +69,7 @@
     <div class="header-actions">
       <span class="status-dot" id="status-dot">Tilkoblet</span>
       <button class="icon-btn" style="position:relative" title="Varselsenter" onclick="openNotificationCenter()">🔔<span id="notif-badge" class="notif-badge hidden"></span></button>
-      <button class="icon-btn" title="Send melding" onclick="openComposeSheet()">✉️</button>
+      <button class="icon-btn" id="send-message-btn" title="Send melding" onclick="openComposeSheet()">✉️</button>
       <button class="icon-btn hidden" id="switch-event-btn" title="Bytt arrangement">🔀</button>
       <button class="icon-btn" id="logout-btn" title="Logg ut">⎋</button>
     </div>
@@ -254,6 +254,10 @@
         <label for="message-recipient-select">Mottaker</label>
         <select id="message-recipient-select"></select>
       </div>
+      <label style="display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:13px">
+        <input type="checkbox" id="message-send-all" onchange="document.getElementById('message-recipient-select').disabled = this.checked">
+        Send til alle tilknyttet arrangementet
+      </label>
       <div class="field">
         <label for="message-text">Melding</label>
         <textarea id="message-text" placeholder="Skriv en melding..." required></textarea>
