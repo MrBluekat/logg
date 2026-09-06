@@ -108,10 +108,6 @@ function wireUpEvents() {
   el("cancel-new").addEventListener("click", closeNewSheet);
   el("new-sheet").addEventListener("click", (e) => { if (e.target.id === "new-sheet") closeNewSheet(); });
   el("new-photo").addEventListener("change", handlePhotoPreview);
-  el("photo-add-btn").addEventListener("click", (e) => {
-    e.preventDefault();
-    el("new-photo").click();
-  });
   el("new-form").addEventListener("submit", saveNewEntry);
 
   el("cancel-new-task").addEventListener("click", () => { el("new-task-sheet").classList.add("hidden"); el("new-task-form").reset(); });
@@ -362,15 +358,19 @@ function handlePhotoPreview(e) {
   const wrap = document.createElement("div");
   wrap.className = "photo-thumb-preview";
   selectedFiles.forEach((file) => {
-    if (file.type && file.type.startsWith("image/")) {
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(file);
-      wrap.appendChild(img);
-    } else {
-      const chip = document.createElement("span");
-      chip.className = "file-chip";
-      chip.textContent = "📎 " + file.name;
-      wrap.appendChild(chip);
+    try {
+      if (file.type && file.type.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        wrap.appendChild(img);
+      } else {
+        const chip = document.createElement("span");
+        chip.className = "file-chip";
+        chip.textContent = "📎 " + file.name;
+        wrap.appendChild(chip);
+      }
+    } catch (err) {
+      console.error("Kunne ikke forhåndsvise fil:", err);
     }
   });
   preview.appendChild(wrap);
