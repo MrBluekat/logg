@@ -204,7 +204,7 @@ label {
 }
 .badge.pagaende { color: var(--warn); border-color: var(--warn); }
 .badge.avsluttet { color: var(--success); border-color: var(--success); }
-.badge.category-prioritert { color: var(--danger); border-color: var(--danger); }
+.badge.category-prioritert { color: var(--warn); border-color: var(--warn); }
 .badge.info { color: var(--text-muted); border-color: var(--border); }
 
 /* ---------------------------------------------------------------------- */
@@ -218,7 +218,7 @@ label {
   margin-bottom: 0.6rem;
   background: var(--panel);
 }
-.log-entry.prioritert { border-left: 3px solid var(--danger); }
+.log-entry.medisinsk { border-left: 3px solid var(--danger); }
 .log-entry .row1 {
   display: flex;
   align-items: baseline;
@@ -369,7 +369,7 @@ table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 0.7
 .delete-x {
   position: absolute;
   bottom: 6px;
-  left: 8px;
+  right: 8px;
   padding: 0;
   border: none;
   background: none;

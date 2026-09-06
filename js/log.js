@@ -344,9 +344,10 @@ window.Log = {
 
   _entryHtml(e) {
     const isPrioritert = e.category === "Prioritert hendelse";
+    const isMedisinsk = e.category === "Medisinsk hendelse";
     const canWrite = Auth.canWrite();
     return `
-    <div class="log-entry ${isPrioritert ? "prioritert" : ""}" id="entry-${e.id}">
+    <div class="log-entry ${isMedisinsk ? "medisinsk" : ""}" id="entry-${e.id}">
       <div class="view-area">
         <div class="row1">
           <span class="display-id mono">${e.display_id}</span>
