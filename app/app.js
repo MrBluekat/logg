@@ -108,6 +108,10 @@ function wireUpEvents() {
   el("cancel-new").addEventListener("click", closeNewSheet);
   el("new-sheet").addEventListener("click", (e) => { if (e.target.id === "new-sheet") closeNewSheet(); });
   el("new-photo").addEventListener("change", handlePhotoPreview);
+  el("photo-add-btn").addEventListener("click", (e) => {
+    e.preventDefault();
+    el("new-photo").click();
+  });
   el("new-form").addEventListener("submit", saveNewEntry);
 
   el("cancel-new-task").addEventListener("click", () => { el("new-task-sheet").classList.add("hidden"); el("new-task-form").reset(); });

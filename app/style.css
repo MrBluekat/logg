@@ -45,16 +45,13 @@ input {
 
 /* Filinnputt for kamera/bilde skal IKKE bruke display:none - på iPhone kan det gjøre at
    nettleseren "mister" bildet når kameraet lukkes og skal levere det tilbake til siden.
-   Denne holder feltet usynlig, men fortsatt reelt til stede i layouten. */
+   Mobile nettlesere respekterer heller ikke alltid width/height-krymping av <input type="file">
+   (de insisterer på å vise knappen i naturlig størrelse) - derfor flyttes feltet helt utenfor
+   synlig område i stedet for å prøve å gjøre det mikroskopisk på stedet. */
 .visually-hidden-file {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  white-space: nowrap;
-  border: 0;
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
 }
 
 .photo-thumb-preview {
