@@ -488,10 +488,18 @@ nav.tab-bar button.active {
 .check-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 10px 14px;
   font-size: 14px;
 }
 .check-grid label { display: flex; align-items: center; gap: 6px; color: var(--text); }
+.check-grid input[type="checkbox"],
+.check-grid input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  flex-shrink: 0;
+  margin: 0;
+}
 
 .meta-line {
   display: flex;
@@ -609,8 +617,52 @@ nav.tab-bar button.active {
   border: 1px solid var(--chip-color, var(--border));
   border-radius: 8px;
   font-size: 13px;
+  white-space: nowrap;
 }
-.color-chip input { accent-color: var(--chip-color, var(--accent)); }
+.color-chip input {
+  accent-color: var(--chip-color, var(--accent));
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.swatch-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.color-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.color-swatch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.swatch-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  border: 2px solid transparent;
+  transition: border-color 0.1s ease;
+}
+.color-swatch input:checked + .swatch-dot {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--chip-color);
+}
+.swatch-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
 
 .badge-color {
   font-size: 11px;

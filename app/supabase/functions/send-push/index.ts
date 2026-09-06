@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
   if (event_id) query = query.eq("event_id", event_id);
   const { data: subs, error } = await query;
 
+  console.log(`send-push: fant ${subs?.length ?? 0} abonnement(er) for event_id=${event_id ?? "(ingen)"} user_id=${user_id ?? "(ingen)"}`);
+
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
@@ -93,7 +95,11 @@ Deno.serve(async (req) => {
     )
   );
 
-  return new Response(JSON.stringify({ sent: results.length }), {
+  const succeeded = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.filter((r) => r.status === "rejected");
+  failed.forEach((f, i) => console.log(`send-push: abonnement ${i} feilet: ${f.reason}`));
+
+  return new Response(JSON.stringify({ attempted: results.length, succeeded, failed: failed.length }), {
     headers: { "Content-Type": "application/json" },
   });
 });
