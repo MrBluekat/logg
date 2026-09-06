@@ -378,9 +378,9 @@ window.Log = {
         <div class="actions">
           ${canWrite && this.canEdit(e) ? `<button class="ghost" onclick="Log.startEdit('${e.id}')">${Lang.t("edit")}</button>` : ""}
           ${canWrite && e.entry_kind === "hendelse" && e.status === "pagaende" ? `<button class="ghost" onclick="Log.markClosed('${e.id}')">${Lang.t("mark_closed")}</button>` : ""}
-          ${Auth.isAdmin() ? `<button class="danger" onclick="Log.deleteEntry('${e.id}')">✕ ${Lang.t("delete_entry")}</button>` : ""}
         </div>
       </div>
+      ${Auth.isAdmin() ? `<button class="delete-x" title="${Lang.t("delete_entry")}" onclick="Log.deleteEntry('${e.id}')">✕</button>` : ""}
       <div class="edit-area hidden"></div>
     </div>`;
   },

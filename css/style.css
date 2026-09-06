@@ -211,9 +211,10 @@ label {
 /* Log feed                                                                */
 /* ---------------------------------------------------------------------- */
 .log-entry {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.75rem 0.9rem;
+  padding: 0.75rem 0.9rem 1.6rem;
   margin-bottom: 0.6rem;
   background: var(--panel);
 }
@@ -364,3 +365,16 @@ table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 0.7
   border-radius: 50%;
   background: var(--danger);
 }
+
+.delete-x {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  opacity: 0.5;
+}
+.delete-x:hover { color: var(--danger); opacity: 1; }
