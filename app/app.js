@@ -431,7 +431,12 @@ async function saveNewEntry(e) {
     let uploadFailures = 0;
     for (const file of selectedFiles) {
       const path = `${currentEvent.id}/${created.id}/${Date.now()}_${file.name}`;
-      const { error: upErr } = await db.storage.from("attachments").upload(path, file);
+      // Leser hele filen inn i minnet før opplasting - på enkelte iPhone/Safari-versjoner
+      // kan det å sende selve File-objektet direkte gi feilen "No content provided".
+      const arrayBuffer = await file.arrayBuffer();
+      const { error: upErr } = await db.storage.from("attachments").upload(path, arrayBuffer, {
+        contentType: file.type || "application/octet-stream",
+      });
       if (upErr) { console.error(upErr); debugLog("Opplasting feilet: " + upErr.message); uploadFailures++; continue; }
       debugLog("Fil lastet opp OK: " + file.name);
       await db.from("log_attachments").insert({
