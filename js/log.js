@@ -269,6 +269,13 @@ window.Log = {
     await this.refresh();
   },
 
+  async deleteEntry(entryId) {
+    if (!confirm(Lang.t("confirm_delete_entry"))) return;
+    const { error } = await sb.from("log_entries").delete().eq("id", entryId);
+    if (error) { alert("Feil: " + error.message); return; }
+    await this.refresh();
+  },
+
   canEdit(entry) {
     const withinWindow = (Date.now() - new Date(entry.created_at).getTime()) < 5 * 60 * 1000;
     if (!withinWindow) return false;
@@ -371,6 +378,7 @@ window.Log = {
         <div class="actions">
           ${canWrite && this.canEdit(e) ? `<button class="ghost" onclick="Log.startEdit('${e.id}')">${Lang.t("edit")}</button>` : ""}
           ${canWrite && e.entry_kind === "hendelse" && e.status === "pagaende" ? `<button class="ghost" onclick="Log.markClosed('${e.id}')">${Lang.t("mark_closed")}</button>` : ""}
+          ${Auth.isAdmin() ? `<button class="danger" onclick="Log.deleteEntry('${e.id}')">✕ ${Lang.t("delete_entry")}</button>` : ""}
         </div>
       </div>
       <div class="edit-area hidden"></div>

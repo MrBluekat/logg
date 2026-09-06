@@ -293,6 +293,8 @@ create policy "log: admin endrer alt, logger endrer eget innen 5 min" on public.
       and event_id = public.current_event_id()
     )
   );
+create policy "log: kun admin sletter" on public.log_entries
+  for delete using (public.current_role_name() = 'admin');
 
 -- LOG EDIT HISTORY
 create policy "historikk: se eget arrangement" on public.log_edit_history
