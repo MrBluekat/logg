@@ -634,6 +634,7 @@ nav.tab-bar button.active {
   flex-wrap: wrap;
 }
 .color-swatch {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -647,6 +648,7 @@ nav.tab-bar button.active {
   height: 1px;
 }
 .swatch-dot {
+  display: block;
   width: 30px;
   height: 30px;
   border-radius: 50%;
