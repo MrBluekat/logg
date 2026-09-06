@@ -660,7 +660,7 @@ function updateNotifBadge() {
   badge.classList.toggle("hidden", unread === 0);
 }
 
-async function openNotificationCenter() {
+function renderNotificationList() {
   const list = el("notif-list");
   list.innerHTML = notifications.map((n) => `
     <li class="notif-item ${n.read ? "" : "unread"}">
@@ -669,12 +669,17 @@ async function openNotificationCenter() {
       <div class="notif-time">${formatTime(n.created_at)}</div>
     </li>
   `).join("") || `<li class="empty-state">Ingen varsler ennå.</li>`;
+}
+
+async function openNotificationCenter() {
+  renderNotificationList();
   el("notif-sheet").classList.remove("hidden");
 
   const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
   if (unreadIds.length) {
     await db.from("notifications").update({ read: true }).in("id", unreadIds);
     await loadNotifications();
+    renderNotificationList(); // oppdaterer visningen umiddelbart (fjerner ulest-markeringen), uten å fjerne selve varslene
   }
 }
 

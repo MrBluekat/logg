@@ -25,6 +25,11 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 );
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 const BEREDSKAP_LABELS = { gronn: "Grønt", gul: "Gult", rod: "Rødt" };
 const SCENE_LABELS = { gronn: "Grønn", gul: "Gul", oransje: "Oransje", rod: "Rød" };
 
@@ -62,48 +67,64 @@ async function insertNotifications(event_id, user_id, title, body) {
 }
 
 Deno.serve(async (req) => {
-  const payload = await req.json();
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
-  let title, body, url, user_id, event_id;
+  try {
+    const payload = await req.json();
 
-  if (payload.table === "log_entries" && payload.record) {
-    const notification = buildAutoNotification(payload.record);
-    if (!notification) {
-      return new Response(JSON.stringify({ skipped: true }), { headers: { "Content-Type": "application/json" } });
+    let title, body, url, user_id, event_id;
+
+    if (payload.table === "log_entries" && payload.record) {
+      const notification = buildAutoNotification(payload.record);
+      if (!notification) {
+        return new Response(JSON.stringify({ skipped: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      title = notification.title;
+      body = notification.body;
+      event_id = payload.record.event_id;
+    } else {
+      ({ title, body, url, user_id, event_id } = payload);
     }
-    title = notification.title;
-    body = notification.body;
-    event_id = payload.record.event_id;
-  } else {
-    ({ title, body, url, user_id, event_id } = payload);
-  }
 
-  await insertNotifications(event_id, user_id, title, body);
+    await insertNotifications(event_id, user_id, title, body);
 
-  let query = supabase.from("push_subscriptions").select("*");
-  if (user_id) query = query.eq("user_id", user_id);
-  if (event_id) query = query.eq("event_id", event_id);
-  const { data: subs, error } = await query;
+    let query = supabase.from("push_subscriptions").select("*");
+    if (user_id) query = query.eq("user_id", user_id);
+    if (event_id) query = query.eq("event_id", event_id);
+    const { data: subs, error } = await query;
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-  }
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-  const notificationPayload = JSON.stringify({ title, body, url });
+    const notificationPayload = JSON.stringify({ title, body, url });
 
-  const results = await Promise.allSettled(
-    (subs || []).map((sub) =>
-      webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        notificationPayload
+    const results = await Promise.allSettled(
+      (subs || []).map((sub) =>
+        webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          notificationPayload
+        )
       )
-    )
-  );
+    );
 
-  const succeeded = results.filter((r) => r.status === "fulfilled").length;
-  const failed = results.filter((r) => r.status === "rejected");
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected");
 
-  return new Response(JSON.stringify({ attempted: results.length, succeeded, failed: failed.length }), {
-    headers: { "Content-Type": "application/json" },
-  });
+    return new Response(JSON.stringify({ attempted: results.length, succeeded, failed: failed.length }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 });
