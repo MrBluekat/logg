@@ -14,7 +14,10 @@ window.Files = {
   async uploadManual(fileList) {
     for (const file of fileList) {
       const path = `${Auth.event.id}/manual/${Date.now()}_${file.name}`;
-      const { error } = await sb.storage.from("attachments").upload(path, file);
+      const arrayBuffer = await file.arrayBuffer();
+      const { error } = await sb.storage.from("attachments").upload(path, arrayBuffer, {
+        contentType: file.type || "application/octet-stream",
+      });
       if (error) { console.error(error); continue; }
       await sb.from("log_attachments").insert({
         event_id: Auth.event.id, log_entry_id: null, file_path: path, file_name: file.name,

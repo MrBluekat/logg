@@ -227,7 +227,12 @@ window.Log = {
   async uploadAttachments(entryId, fileList) {
     for (const file of fileList) {
       const path = `${Auth.event.id}/${entryId}/${Date.now()}_${file.name}`;
-      const { error } = await sb.storage.from("attachments").upload(path, file);
+      // Leser hele filen inn i minnet før opplasting - unngår "No content provided"-feil
+      // som kan oppstå på enkelte mobile nettlesere (spesielt iPhone/Safari) ved direkte opplasting av et File-objekt.
+      const arrayBuffer = await file.arrayBuffer();
+      const { error } = await sb.storage.from("attachments").upload(path, arrayBuffer, {
+        contentType: file.type || "application/octet-stream",
+      });
       if (error) { console.error(error); continue; }
       await sb.from("log_attachments").insert({
         event_id: Auth.event.id, log_entry_id: entryId, file_path: path, file_name: file.name,
