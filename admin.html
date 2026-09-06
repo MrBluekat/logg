@@ -61,6 +61,11 @@
       // Full kategori-liste (samme som log.js) - trengs for PDF-eksport-oppsummeringen
       window.Log = Object.assign(window.Log, {
         CATEGORIES: ["Loggforing", "Utvisning", "Medisinsk hendelse", "Hendelse", "Prioritert hendelse", "Scene", "Vaer", "Publikumstall"],
+        CATEGORY_LABELS: {
+          "Loggforing": "Loggføring", "Utvisning": "Utvisning", "Medisinsk hendelse": "Medisinsk hendelse",
+          "Hendelse": "Hendelse", "Prioritert hendelse": "Prioritert hendelse", "Scene": "Scene", "Vaer": "Vær", "Publikumstall": "Publikumstall",
+        },
+        NOTIFY_OPTIONS: ["Politi", "AMK", "Brannvesenet", "Sikkerhetsleder", "Krisegruppen"],
       });
       await Admin.init();
     })();

@@ -65,7 +65,7 @@ window.Admin = {
           <td>${ev.status}</td>
           <td>
             <a href="app.html?event=${ev.id}"><button class="ghost">Åpne logg</button></a>
-            <button class="ghost" onclick="PDFExport.exportEvent('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("export_pdf")}</button>
+            <button class="ghost" onclick="PDFExport.promptAndExport('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("export_pdf")}</button>
             ${ev.status === "active" ? `<button class="danger" onclick="Admin.archiveEvent('${ev.id}','${ev.name.replace(/'/g, "\\'")}')">${Lang.t("archive_export")}</button>` : ""}
           </td>
         </tr>`).join("")}</tbody></table>
