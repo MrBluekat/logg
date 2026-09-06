@@ -47,6 +47,7 @@ create table public.tasks (
   event_id          uuid not null references public.events(id) on delete cascade,
   description       text not null,
   assigned_name     text,
+  assigned_user_id  uuid references public.profiles(id) on delete set null, -- valgfritt: konkret bruker i loggen (i stedet for/i tillegg til fritekstnavn)
   has_timer         boolean not null default false,
   timer_mode        text not null default 'duration' check (timer_mode in ('duration','fixed_time')),
   duration_seconds  integer,             -- opprinnelig varighet (brukes ved "nullstill"), kun timer_mode='duration'
@@ -57,6 +58,18 @@ create table public.tasks (
   done              boolean not null default false,
   sort_order        integer not null default 0,
   created_at        timestamptz not null default now()
+);
+
+-- Varselsenter: én rad per mottaker per varsel (både push-varsler og oppgavetildelinger
+-- havner her, slik at brukeren kan se historikken selv om de gikk glipp av selve push-varselet).
+create table public.notifications (
+  id         uuid primary key default gen_random_uuid(),
+  event_id   uuid references public.events(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  title      text not null,
+  body       text,
+  read       boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 -- ----------------------------------------------------------------------------
@@ -246,6 +259,14 @@ create policy "tasks: admin/logger endrer" on public.tasks
   for update using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
 create policy "tasks: admin/logger sletter" on public.tasks
   for delete using (public.current_role_name() = 'admin' or (public.current_role_name() = 'logger' and event_id = public.current_event_id()));
+
+-- NOTIFICATIONS (varselsenter)
+create policy "notifications: bruker ser egne" on public.notifications
+  for select using (user_id = auth.uid());
+create policy "notifications: bruker markerer egne som lest" on public.notifications
+  for update using (user_id = auth.uid());
+-- Ingen insert-policy for vanlige brukere med vilje - varsler opprettes kun via
+-- Edge Function-en (send-push), som bruker service_role og dermed går utenom RLS.
 
 -- LOG ENTRIES
 create policy "log: se eget arrangement" on public.log_entries

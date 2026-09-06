@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arrangementslogg</title>
+<title>Arlogg</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,6 +13,7 @@
     <button class="ghost" onclick="Contacts.open()">📇 <span data-i18n="contact_list">Kontaktliste</span></button>
     <button class="ghost" onclick="Files.open()">📁 <span data-i18n="files">Filer</span></button>
     <div class="topbar-spacer"></div>
+    <button class="ghost" style="position:relative" onclick="Notifications.open()">🔔 <span data-i18n="notification_center">Varselsenter</span><span id="notif-badge" class="notif-badge hidden"></span></button>
     <button class="ghost" onclick="Dashboard.open()">📊 <span data-i18n="dashboard">Dashboard</span></button>
     <div class="lang-theme-toggle">
       <button class="ghost" onclick="Lang.set('no'); rerender()">NO</button>
@@ -50,7 +51,10 @@
           <div class="stack" id="tasks-add-form" style="margin-top:.7rem; gap:.4rem">
             <div class="row">
               <input id="task-description" placeholder="Beskrivelse" style="flex:2">
-              <input id="task-assigned" data-i18n-placeholder="task_assigned" placeholder="Ansvarlig" style="flex:1">
+              <select id="task-assigned-select" style="flex:1" onchange="document.getElementById('task-assigned-custom').classList.toggle('hidden', this.value !== '__custom')">
+                <option value="__custom" data-i18n="task_assign_method_text">Fritekst</option>
+              </select>
+              <input id="task-assigned-custom" data-i18n-placeholder="task_assigned" placeholder="Ansvarlig" style="flex:1">
             </div>
             <label class="row" style="align-items:center; gap:.3rem">
               <input type="checkbox" id="task-has-timer" onchange="document.getElementById('task-timer-block').classList.toggle('hidden', !this.checked)">
@@ -117,6 +121,7 @@
   <script src="js/contacts.js"></script>
   <script src="js/files.js"></script>
   <script src="js/tasks.js"></script>
+  <script src="js/notifications.js"></script>
   <script>
     function rerender() {
       Lang.apply();
@@ -172,6 +177,7 @@
       Timers.init("timer-list");
       updateTimerInputs();
       await Tasks.init("task-list");
+      await Notifications.init();
       await Log.init();
     })();
   </script>

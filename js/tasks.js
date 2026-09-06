@@ -1,10 +1,12 @@
 window.Tasks = {
   list: [],
+  eventUsers: [],
   containerEl: null,
 
   async init(containerId) {
     this.containerEl = document.getElementById(containerId);
     await this.load();
+    await this.loadEventUsers();
     this._render();
     this._subscribeRealtime();
     setInterval(() => this._render(), 1000); // oppdaterer nedtelling-visningen
@@ -13,6 +15,17 @@ window.Tasks = {
   async load() {
     const { data } = await sb.from("tasks").select("*").eq("event_id", Auth.event.id).order("sort_order");
     this.list = data || [];
+  },
+
+  // Kun brukere (logger/observatør) tilknyttet DETTE arrangementet - ikke alle brukere i systemet.
+  async loadEventUsers() {
+    const { data } = await sb.from("profiles").select("id, full_name").eq("event_id", Auth.event.id).order("full_name");
+    this.eventUsers = data || [];
+    const select = document.getElementById("task-assigned-select");
+    if (select) {
+      select.innerHTML = `<option value="__custom">${Lang.t("task_assign_method_text")}</option>` +
+        this.eventUsers.map((u) => `<option value="${u.id}">${u.full_name}</option>`).join("");
+    }
   },
 
   _subscribeRealtime() {
@@ -31,13 +44,23 @@ window.Tasks = {
 
   async add() {
     const description = document.getElementById("task-description").value.trim();
-    const assigned_name = document.getElementById("task-assigned").value.trim();
+    const assignSelect = document.getElementById("task-assigned-select").value;
+    const customName = document.getElementById("task-assigned-custom").value.trim();
     const hasTimer = document.getElementById("task-has-timer").checked;
     const mode = document.getElementById("task-timer-mode").value;
     if (!description) return;
 
+    let assigned_user_id = null;
+    let assigned_name = null;
+    if (assignSelect === "__custom") {
+      assigned_name = customName || null;
+    } else {
+      assigned_user_id = assignSelect;
+      assigned_name = this.eventUsers.find((u) => u.id === assignSelect)?.full_name || null;
+    }
+
     const payload = {
-      event_id: Auth.event.id, description, assigned_name: assigned_name || null,
+      event_id: Auth.event.id, description, assigned_name, assigned_user_id,
       has_timer: hasTimer, sort_order: await this._nextSortOrder(),
     };
 
@@ -57,8 +80,14 @@ window.Tasks = {
     }
 
     await sb.from("tasks").insert(payload);
+
+    if (assigned_user_id) {
+      await Notifications.notifyUser(assigned_user_id, Auth.event.id, "Ny oppgave tildelt", description);
+    }
+
     document.getElementById("task-description").value = "";
-    document.getElementById("task-assigned").value = "";
+    document.getElementById("task-assigned-custom").value = "";
+    document.getElementById("task-assigned-select").value = "__custom";
     document.getElementById("task-timer-hours").value = "";
     document.getElementById("task-timer-minutes").value = "";
     document.getElementById("task-timer-target").value = "";

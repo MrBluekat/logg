@@ -340,3 +340,13 @@ table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 0.7
 }
 .color-chip input { width: auto; accent-color: var(--chip-color, var(--accent)); }
 .color-chip:has(input:checked) { background: color-mix(in srgb, var(--chip-color, var(--border)) 18%, transparent); }
+
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+}

@@ -102,6 +102,10 @@ window.I18N = {
     task_has_timer: "Nedtellende timer",
     task_add: "Legg til oppgave",
     task_assigned: "Ansvarlig",
+    notification_center: "Varselsenter",
+    no_notifications: "Ingen varsler ennå.",
+    task_assign_method_text: "Fritekst",
+    task_assign_method_user: "Bruker i loggen",
   },
   en: {
     login_title: "Log in",
@@ -206,6 +210,10 @@ window.I18N = {
     task_has_timer: "Countdown timer",
     task_add: "Add task",
     task_assigned: "Responsible",
+    notification_center: "Notification center",
+    no_notifications: "No notifications yet.",
+    task_assign_method_text: "Free text",
+    task_assign_method_user: "User in the log",
   },
 };
 
