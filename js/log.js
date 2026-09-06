@@ -148,12 +148,14 @@ window.Log = {
     const el = document.getElementById("entry-form");
     if (!el || !Auth.canWrite()) return;
     el.innerHTML = `
-      <div class="field"><label>${Lang.t("new_entry")}</label>
-        <select id="in-kind"><option value="info">${Lang.t("entry_kind_info")}</option><option value="hendelse">${Lang.t("entry_kind_hendelse")}</option></select>
-      </div>
       <div class="grid-2">
+        <div class="field"><label>${Lang.t("entry_type_label")}</label>
+          <select id="in-kind"><option value="info">${Lang.t("entry_kind_info")}</option><option value="hendelse">${Lang.t("entry_kind_hendelse")}</option></select>
+        </div>
         <div class="field"><label>${Lang.t("category")}</label>
           <select id="in-category">${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
+      </div>
+      <div class="grid-2">
         <div class="field"><label>${Lang.t("location")} <button class="ghost" style="padding:.1rem .4rem" onclick="Log.manageLocations()">⚙</button></label>
           <select id="in-location" onchange="document.getElementById('in-location-custom').classList.toggle('hidden', this.value !== '__custom')">
             <option value="">–</option>
@@ -162,8 +164,8 @@ window.Log = {
           </select>
           <input id="in-location-custom" class="hidden" placeholder="${Lang.t("location_custom")}" style="margin-top:.4rem">
         </div>
+        <div class="field"><label>${Lang.t("reporter_source")}</label><input id="in-reporter" placeholder="Vekter / Frivillig / Politi / Annet"></div>
       </div>
-      <div class="field"><label>${Lang.t("reporter_source")}</label><input id="in-reporter" placeholder="Vekter / Frivillig / Politi / Annet"></div>
       <div class="field"><label>${Lang.t("description")}</label><textarea id="in-description"></textarea></div>
       <div class="field"><label>${Lang.t("action_taken")}</label><textarea id="in-action"></textarea></div>
       <div class="field"><label>${Lang.t("notified")}</label>
@@ -268,9 +270,10 @@ window.Log = {
   },
 
   canEdit(entry) {
+    const withinWindow = (Date.now() - new Date(entry.created_at).getTime()) < 5 * 60 * 1000;
+    if (!withinWindow) return false;
     if (Auth.isAdmin()) return true;
-    if (!Auth.isLogger() || entry.created_by !== Auth.profile.id) return false;
-    return (Date.now() - new Date(entry.created_at).getTime()) < 5 * 60 * 1000;
+    return Auth.isLogger() && entry.created_by === Auth.profile.id;
   },
 
   startEdit(entryId) {
@@ -360,7 +363,7 @@ window.Log = {
           <div class="comments">
             ${e.comments.map((c) => `<div class="comment"><div class="who">${new Date(c.created_at).toLocaleString("no-NO")} — ${c.created_by_name}</div>${c.comment_text}</div>`).join("")}
             ${canWrite && e.status === "pagaende" ? `
-              <div class="row">
+              <div class="row" style="margin-left:1.4rem">
                 <input id="comment-input-${e.id}" placeholder="${Lang.t("comment_placeholder")}" style="flex:1">
                 <button onclick="Log.addComment('${e.id}')">${Lang.t("add_comment")}</button>
               </div>` : ""}

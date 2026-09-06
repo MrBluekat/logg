@@ -121,14 +121,12 @@ create table public.log_entries (
   beredskapsniva   text check (beredskapsniva in ('gronn','gul','rod')),        -- valgfritt, kun 1 av gangen
   scene_farge      text check (scene_farge in ('gronn','gul','oransje','rod')), -- valgfritt, kun 1 av gangen
   status           text not null default 'avsluttet' check (status in ('pagaende','avsluttet')),
-  created_by       uuid references public.profiles(id),
+  created_by       uuid references public.profiles(id) on delete set null,
   created_by_name  text not null,
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   is_edited        boolean not null default false
 );
-
-create index on public.log_entries (event_id, created_at desc);
 
 -- Auto-generer display_id "H-001" osv per arrangement
 create or replace function public.set_log_display_id()
@@ -153,7 +151,7 @@ create table public.log_edit_history (
   id             uuid primary key default gen_random_uuid(),
   log_entry_id   uuid not null references public.log_entries(id) on delete cascade,
   previous_data  jsonb not null,
-  changed_by     uuid references public.profiles(id),
+  changed_by     uuid references public.profiles(id) on delete set null,
   changed_by_name text not null,
   changed_at     timestamptz not null default now()
 );
@@ -179,7 +177,7 @@ create table public.log_comments (
   id               uuid primary key default gen_random_uuid(),
   log_entry_id     uuid not null references public.log_entries(id) on delete cascade,
   comment_text     text not null,
-  created_by       uuid references public.profiles(id),
+  created_by       uuid references public.profiles(id) on delete set null,
   created_by_name  text not null,
   created_at       timestamptz not null default now()
 );
@@ -193,7 +191,7 @@ create table public.log_attachments (
   file_path         text not null,     -- path i Storage-bucketen "attachments"
   file_name         text not null,
   file_type         text,
-  uploaded_by       uuid references public.profiles(id),
+  uploaded_by       uuid references public.profiles(id) on delete set null,
   uploaded_by_name  text,
   uploaded_at       timestamptz not null default now()
 );

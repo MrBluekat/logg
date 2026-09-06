@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arlogg</title>
+<link rel="icon" href="favicon.png" type="image/png">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -33,6 +34,10 @@
   <div class="app-layout" id="app-layout">
     <div class="stack">
       <div class="panel desktop-only-write" id="entry-form-panel">
+        <div class="panel-head" style="cursor:pointer" onclick="toggleEntryForm()">
+          <span data-i18n="new_entry">Ny loggføring</span>
+          <button class="ghost" id="entry-form-toggle-icon" style="padding:.1rem .5rem">▲</button>
+        </div>
         <div class="panel-body" id="entry-form"></div>
       </div>
 
@@ -124,6 +129,14 @@
   <script src="js/tasks.js"></script>
   <script src="js/notifications.js"></script>
   <script>
+    function toggleEntryForm() {
+      const body = document.getElementById("entry-form");
+      const icon = document.getElementById("entry-form-toggle-icon");
+      const collapsed = body.classList.toggle("hidden");
+      icon.textContent = collapsed ? "▼" : "▲";
+      localStorage.setItem("al_entry_form_collapsed", collapsed ? "1" : "0");
+    }
+
     function rerender() {
       Lang.apply();
       Log._renderForm(); Log._renderFilters(); Log._renderEntries();
@@ -181,6 +194,10 @@
       await Tasks.init("task-list");
       await Notifications.init();
       await Log.init();
+      if (Auth.canWrite() && localStorage.getItem("al_entry_form_collapsed") === "1") {
+        document.getElementById("entry-form").classList.add("hidden");
+        document.getElementById("entry-form-toggle-icon").textContent = "▼";
+      }
     })();
   </script>
 </body>

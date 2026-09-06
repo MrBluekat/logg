@@ -109,7 +109,7 @@ input[type="checkbox"], input[type="radio"] {
   border: initial;
   accent-color: var(--accent);
 }
-textarea { resize: vertical; min-height: 4.5em; }
+textarea { resize: vertical; min-height: 2.8em; }
 
 label {
   display: block;
@@ -118,7 +118,7 @@ label {
   margin-bottom: 0.3rem;
 }
 
-.field { margin-bottom: 0.9rem; }
+.field { margin-bottom: 0.6rem; }
 
 .panel {
   background: var(--panel);
@@ -230,7 +230,13 @@ label {
 .log-entry .desc { margin: 0.3rem 0; }
 .log-entry .meta { font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 1rem; flex-wrap: wrap; }
 .log-entry .comments { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
-.log-entry .comment { font-size: 0.88rem; margin-bottom: 0.4rem; }
+.log-entry .comment {
+  font-size: 0.88rem;
+  margin-bottom: 0.4rem;
+  margin-left: 1.4rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--border);
+}
 .log-entry .comment .who { color: var(--text-muted); font-size: 0.76rem; }
 .log-entry .attachments { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
 .log-entry .attachments a { font-size: 0.78rem; }
