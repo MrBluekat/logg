@@ -51,6 +51,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const { data: { session } } = await db.auth.getSession();
   if (session) await loadProfileAndEnter();
+
+  // Mobiler fryser ofte apper i bakgrunnen, som bryter sanntids-tilkoblingen (Realtime).
+  // Hent fersk data på nytt hver gang appen kommer tilbake i forgrunnen.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && currentEvent) {
+      loadEntries();
+      loadTasks();
+      loadContacts();
+    }
+  });
 });
 
 db.auth.onAuthStateChange((event) => {
@@ -585,7 +595,21 @@ function urlBase64ToUint8Array(base64String) {
 // ---------------------------------------------------------------------------
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch((err) => console.error("Service worker-registrering feilet:", err));
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      reg.update(); // sjekk for ny versjon med en gang
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update();
+      });
+    }).catch((err) => console.error("Service worker-registrering feilet:", err));
+
+    // Når en ny service worker-versjon tar over, last siden på nytt automatisk
+    // (i stedet for at brukeren må lukke og åpne appen manuelt for å få oppdateringen)
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
   }
 }
 

@@ -1,4 +1,6 @@
-const CACHE_NAME = "arrangementslogg-v1";
+// Øk dette tallet hver gang appen oppdateres med nytt innhold, slik at gamle
+// enheter systematisk får ny versjon i stedet for å sitte fast på en cachet en.
+const CACHE_NAME = "arrangementslogg-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -28,17 +30,23 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Hent: cache-first for app-skallet, network-first for alt annet (data skal alltid være ferskt)
+// Hent: NETTVERK FØRST for app-skallet (så du alltid får siste versjon når du har nett),
+// med cache som reserve kun når du er offline. Data (Supabase-kall) går alltid rett til nettverket.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   const isAppShell = APP_SHELL.some((path) => url.pathname.endsWith(path.replace("./", "")));
 
   if (isAppShell) {
     event.respondWith(
-      caches.match(event.request).then((cached) => cached || fetch(event.request))
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
   }
-  // Alt annet (Supabase-kall osv.) går rett til nettverket som normalt.
 });
 
 // Motta push-varsel

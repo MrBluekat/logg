@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 
-  const payload = JSON.stringify({ title, body, url });
+  const notificationPayload = JSON.stringify({ title, body, url });
 
   const results = await Promise.allSettled(
     (subs || []).map((sub) =>
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
-        payload
+        notificationPayload
       )
     )
   );
