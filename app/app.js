@@ -108,7 +108,6 @@ function wireUpEvents() {
   el("cancel-new").addEventListener("click", closeNewSheet);
   el("new-sheet").addEventListener("click", (e) => { if (e.target.id === "new-sheet") closeNewSheet(); });
   el("new-photo").addEventListener("change", handlePhotoPreview);
-  el("new-photo").addEventListener("input", handlePhotoPreview); // ekstra sikring - noen mobilnettlesere fyrer "input" i stedet for "change" for filfelt
   // Tømmer feltet før velgeren åpnes - uten dette kan enkelte mobilnettlesere la være å
   // varsle om en endring hvis du velger nøyaktig samme fil som forrige gang.
   el("new-photo").addEventListener("click", (e) => {
@@ -360,6 +359,7 @@ function handlePhotoPreview(e) {
   debugLog(`Fil-hendelse mottatt (${e.type}): ${e.target.files ? e.target.files.length : "ingen"} fil(er)`);
   selectedFiles = Array.from(e.target.files || []);
   const preview = el("photo-preview");
+  debugLog(`preview-element finnes: ${!!preview}, tømmer og bygger på nytt`);
   preview.innerHTML = "";
   if (!selectedFiles.length) return;
 
@@ -378,10 +378,12 @@ function handlePhotoPreview(e) {
         wrap.appendChild(chip);
       }
     } catch (err) {
+      debugLog("FEIL ved forhåndsvisning: " + err);
       console.error("Kunne ikke forhåndsvise fil:", err);
     }
   });
   preview.appendChild(wrap);
+  debugLog(`Forhåndsvisning ferdig - ${wrap.childElementCount} element(er) i wrap, preview har nå ${preview.childElementCount} barn`);
   const label = document.createElement("div");
   label.className = "file-preview-text";
   label.style.marginTop = "6px";
