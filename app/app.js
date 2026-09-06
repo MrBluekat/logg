@@ -351,15 +351,36 @@ async function markClosed(entryId) {
 // ---------------------------------------------------------------------------
 function handlePhotoPreview(e) {
   selectedFiles = Array.from(e.target.files || []);
-  el("photo-preview").textContent = selectedFiles.length
-    ? `${selectedFiles.length} fil(er) valgt: ${selectedFiles.map((f) => f.name).join(", ")}`
-    : "";
+  const preview = el("photo-preview");
+  preview.innerHTML = "";
+  if (!selectedFiles.length) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "photo-thumb-preview";
+  selectedFiles.forEach((file) => {
+    if (file.type && file.type.startsWith("image/")) {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      wrap.appendChild(img);
+    } else {
+      const chip = document.createElement("span");
+      chip.className = "file-chip";
+      chip.textContent = "📎 " + file.name;
+      wrap.appendChild(chip);
+    }
+  });
+  preview.appendChild(wrap);
+  const label = document.createElement("div");
+  label.className = "file-preview-text";
+  label.style.marginTop = "6px";
+  label.textContent = `✓ ${selectedFiles.length} fil(er) valgt`;
+  preview.appendChild(label);
 }
 
 function closeNewSheet() {
   el("new-sheet").classList.add("hidden");
   el("new-form").reset();
-  el("photo-preview").textContent = "";
+  el("photo-preview").innerHTML = "";
   selectedFiles = [];
 }
 
@@ -394,10 +415,11 @@ async function saveNewEntry(e) {
 
     if (error) throw error;
 
+    let uploadFailures = 0;
     for (const file of selectedFiles) {
       const path = `${currentEvent.id}/${created.id}/${Date.now()}_${file.name}`;
       const { error: upErr } = await db.storage.from("attachments").upload(path, file);
-      if (upErr) { console.error(upErr); continue; }
+      if (upErr) { console.error(upErr); uploadFailures++; continue; }
       await db.from("log_attachments").insert({
         event_id: currentEvent.id, log_entry_id: created.id, file_path: path,
         file_name: file.name, file_type: file.type, uploaded_by: user.id, uploaded_by_name: profile.full_name,
@@ -405,7 +427,9 @@ async function saveNewEntry(e) {
     }
 
     closeNewSheet();
-    showToast("Loggføring lagret");
+    showToast(uploadFailures > 0
+      ? `Loggføring lagret, men ${uploadFailures} fil(er) kunne ikke lastes opp`
+      : "Loggføring lagret");
     loadEntries();
   } catch (err) {
     console.error(err);
