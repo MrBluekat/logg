@@ -108,6 +108,13 @@ function wireUpEvents() {
   el("cancel-new").addEventListener("click", closeNewSheet);
   el("new-sheet").addEventListener("click", (e) => { if (e.target.id === "new-sheet") closeNewSheet(); });
   el("new-photo").addEventListener("change", handlePhotoPreview);
+  el("new-photo").addEventListener("input", handlePhotoPreview); // ekstra sikring - noen mobilnettlesere fyrer "input" i stedet for "change" for filfelt
+  // Tømmer feltet før velgeren åpnes - uten dette kan enkelte mobilnettlesere la være å
+  // varsle om en endring hvis du velger nøyaktig samme fil som forrige gang.
+  el("new-photo").addEventListener("click", (e) => {
+    debugLog("Fil-felt trykket, tømmer verdi først");
+    e.target.value = "";
+  });
   el("new-form").addEventListener("submit", saveNewEntry);
 
   el("cancel-new-task").addEventListener("click", () => { el("new-task-sheet").classList.add("hidden"); el("new-task-form").reset(); });
@@ -350,6 +357,7 @@ async function markClosed(entryId) {
 // Ny loggføring
 // ---------------------------------------------------------------------------
 function handlePhotoPreview(e) {
+  debugLog(`Fil-hendelse mottatt (${e.type}): ${e.target.files ? e.target.files.length : "ingen"} fil(er)`);
   selectedFiles = Array.from(e.target.files || []);
   const preview = el("photo-preview");
   preview.innerHTML = "";
@@ -419,11 +427,13 @@ async function saveNewEntry(e) {
 
     if (error) throw error;
 
+    debugLog(`Lagrer hendelse - ${selectedFiles.length} fil(er) i selectedFiles ved lagring`);
     let uploadFailures = 0;
     for (const file of selectedFiles) {
       const path = `${currentEvent.id}/${created.id}/${Date.now()}_${file.name}`;
       const { error: upErr } = await db.storage.from("attachments").upload(path, file);
-      if (upErr) { console.error(upErr); uploadFailures++; continue; }
+      if (upErr) { console.error(upErr); debugLog("Opplasting feilet: " + upErr.message); uploadFailures++; continue; }
+      debugLog("Fil lastet opp OK: " + file.name);
       await db.from("log_attachments").insert({
         event_id: currentEvent.id, log_entry_id: created.id, file_path: path,
         file_name: file.name, file_type: file.type, uploaded_by: user.id, uploaded_by_name: profile.full_name,
@@ -671,4 +681,23 @@ function showToast(msg) {
   toast.classList.remove("hidden");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.add("hidden"), 3000);
+}
+
+// --------------------------------------------------------------------------
+// MIDLERTIDIG feilsøkingslogg synlig nederst på skjermen - fjernes igjen når
+// bilde-opplastingsproblemet er løst. Ikke en del av normal drift.
+// --------------------------------------------------------------------------
+function debugLog(msg) {
+  console.log(msg);
+  let box = document.getElementById("debug-box");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "debug-box";
+    box.style.cssText = "position:fixed;bottom:0;left:0;right:0;max-height:26vh;overflow-y:auto;background:rgba(0,0,0,0.9);color:#4dff4d;font-size:10px;line-height:1.4;padding:6px 8px;z-index:99999;font-family:monospace;border-top:2px solid #4dff4d;";
+    document.body.appendChild(box);
+  }
+  const line = document.createElement("div");
+  line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
 }
