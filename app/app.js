@@ -120,6 +120,9 @@ function wireUpEvents() {
   el("new-task-form").addEventListener("submit", saveNewTask);
   el("close-notif-sheet").addEventListener("click", () => el("notif-sheet").classList.add("hidden"));
   el("notif-sheet").addEventListener("click", (e) => { if (e.target.id === "notif-sheet") el("notif-sheet").classList.add("hidden"); });
+  el("cancel-compose").addEventListener("click", () => { el("compose-sheet").classList.add("hidden"); el("compose-form").reset(); });
+  el("compose-sheet").addEventListener("click", (e) => { if (e.target.id === "compose-sheet") { el("compose-sheet").classList.add("hidden"); el("compose-form").reset(); } });
+  el("compose-form").addEventListener("submit", sendComposeMessage);
 
   el("cancel-new-contact").addEventListener("click", () => { el("new-contact-sheet").classList.add("hidden"); el("new-contact-form").reset(); });
   el("new-contact-sheet").addEventListener("click", (e) => { if (e.target.id === "new-contact-sheet") { el("new-contact-sheet").classList.add("hidden"); el("new-contact-form").reset(); } });
@@ -631,7 +634,8 @@ async function saveNewContact(e) {
 let eventUsers = [];
 
 async function loadEventUsers() {
-  const { data } = await db.from("profiles").select("id, full_name").eq("event_id", currentEvent.id).order("full_name");
+  const { data } = await db.from("profiles").select("id, full_name")
+    .or(`event_id.eq.${currentEvent.id},role.eq.admin`).order("full_name");
   eventUsers = data || [];
   const select = el("task-assigned-select");
   if (select) {
@@ -695,6 +699,27 @@ async function notifyUser(userId, eventId, title, body) {
   } catch (err) {
     console.error("Kunne ikke sende varsel:", err);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Send manuell melding til en bruker tilknyttet arrangementet (envis - mottaker kan ikke svare)
+// ---------------------------------------------------------------------------
+function openComposeSheet() {
+  const select = el("message-recipient-select");
+  const others = eventUsers.filter((u) => u.id !== profile.id);
+  select.innerHTML = others.map((u) => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join("") || `<option value="">–</option>`;
+  el("compose-sheet").classList.remove("hidden");
+}
+
+async function sendComposeMessage(e) {
+  e.preventDefault();
+  const recipientId = el("message-recipient-select").value;
+  const text = el("message-text").value.trim();
+  if (!recipientId || !text) return;
+  await notifyUser(recipientId, currentEvent.id, `Melding fra ${profile.full_name}`, text);
+  el("compose-sheet").classList.add("hidden");
+  el("compose-form").reset();
+  showToast("Melding sendt");
 }
 
 // ---------------------------------------------------------------------------
