@@ -150,8 +150,12 @@
         </select>
       </div>
       <div class="field">
-        <label for="new-lokasjon">Lokasjon (valgfritt)</label>
-        <input type="text" id="new-lokasjon" placeholder="F.eks. Hovedscene, Inngang A" />
+        <label for="new-lokasjon-select">Lokasjon (valgfritt)</label>
+        <select id="new-lokasjon-select" onchange="document.getElementById('new-lokasjon-custom').classList.toggle('hidden', this.value !== '__custom')">
+          <option value="">–</option>
+          <option value="__custom">Annen lokasjon (skriv inn)</option>
+        </select>
+        <input type="text" id="new-lokasjon-custom" class="hidden" placeholder="Skriv inn lokasjon" style="margin-top:8px" />
       </div>
       <div class="field">
         <label for="new-reporter">Meldt via (valgfritt)</label>

@@ -229,7 +229,7 @@ async function enterApp() {
   el("switch-event-btn").classList.toggle("hidden", profile.role !== "admin");
   el("send-message-btn").classList.toggle("hidden", !canWrite());
 
-  await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications()]);
+  await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications(), loadLocations()]);
   subscribeRealtime();
   maybeShowPushBanner();
 }
@@ -259,7 +259,10 @@ function subscribeRealtime() {
   const ch4 = db.channel("pwa-notifications-" + profile.id)
     .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${profile.id}` }, loadNotifications)
     .subscribe();
-  activeChannels = [ch1, ch2, ch3, ch4];
+  const ch5 = db.channel("pwa-locations-" + currentEvent.id)
+    .on("postgres_changes", { event: "*", schema: "public", table: "locations", filter: `event_id=eq.${currentEvent.id}` }, loadLocations)
+    .subscribe();
+  activeChannels = [ch1, ch2, ch3, ch4, ch5];
 }
 
 function unsubscribeRealtime() {
@@ -423,6 +426,7 @@ function handlePhotoPreview(e) {
 function closeNewSheet() {
   el("new-sheet").classList.add("hidden");
   el("new-form").reset();
+  el("new-lokasjon-custom").classList.add("hidden");
   el("photo-preview").innerHTML = "";
   selectedFiles = [];
 }
@@ -435,6 +439,11 @@ async function saveNewEntry(e) {
 
   try {
     const kind = el("new-kind").value;
+    let location = el("new-lokasjon-select").value;
+    if (location === "__custom") location = el("new-lokasjon-custom").value.trim();
+    if (location && !eventLocations.some((l) => l.name.toLowerCase() === location.toLowerCase())) {
+      await addLocation(location);
+    }
     const notified = Array.from(document.querySelectorAll(".notify-cb:checked")).map((c) => c.value);
     const beredskapsniva = document.querySelector('input[name="new-beredskap"]:checked')?.value || null;
     const scene_farge = document.querySelector('input[name="new-scene"]:checked')?.value || null;
@@ -444,7 +453,7 @@ async function saveNewEntry(e) {
       event_id: currentEvent.id,
       entry_kind: kind,
       category: el("new-kategori").value,
-      location: el("new-lokasjon").value.trim() || null,
+      location: location || null,
       reporter_source: el("new-reporter").value.trim() || null,
       description: el("new-beskrivelse").value.trim(),
       action_taken: el("new-tiltak").value.trim() || null,
@@ -627,6 +636,27 @@ async function saveNewContact(e) {
   el("new-contact-form").reset();
   showToast("Kontakt lagt til");
   loadContacts();
+}
+
+// ---------------------------------------------------------------------------
+// Lokasjoner tilknyttet arrangementet (delt med hovedsiden - samme "locations"-tabell)
+// ---------------------------------------------------------------------------
+let eventLocations = [];
+
+async function loadLocations() {
+  const { data } = await db.from("locations").select("*").eq("event_id", currentEvent.id).order("name");
+  eventLocations = data || [];
+  const select = el("new-lokasjon-select");
+  if (select) {
+    select.innerHTML = `<option value="">–</option>` +
+      eventLocations.map((l) => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join("") +
+      `<option value="__custom">Annen lokasjon (skriv inn)</option>`;
+  }
+}
+
+async function addLocation(name) {
+  await db.from("locations").insert({ event_id: currentEvent.id, name });
+  await loadLocations();
 }
 
 // ---------------------------------------------------------------------------
