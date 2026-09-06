@@ -306,7 +306,8 @@ function renderEntries(rows) {
 function entryRow(row) {
   const li = document.createElement("li");
   const isPrioritert = row.category === "Prioritert hendelse";
-  li.className = `item-row ${isPrioritert ? "sev-hoy" : ""}`;
+  const isMedisinsk = row.category === "Medisinsk hendelse";
+  li.className = `item-row ${isMedisinsk ? "sev-hoy" : ""}`;
 
   const statusBadge = row.entry_kind === "hendelse"
     ? `<span class="badge ${row.status === "pagaende" ? "status-under" : "status-lukket"}">${row.status === "pagaende" ? "Pågående" : "Avsluttet"}</span>`
@@ -319,7 +320,7 @@ function entryRow(row) {
 
   li.innerHTML = `
     <div class="row-top">
-      <span class="kategori">${CATEGORY_LABELS[row.category] || row.category}</span>
+      <span class="kategori" style="${isPrioritert ? "color:#e8c93d" : ""}">${CATEGORY_LABELS[row.category] || row.category}</span>
       <span class="tid">${formatTime(row.created_at)}</span>
     </div>
     <div class="beskrivelse">${escapeHtml(row.description || "")}</div>
