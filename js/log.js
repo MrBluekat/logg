@@ -11,6 +11,17 @@ window.Log = {
     "Publikumstall": "Publikumstall",
   },
   NOTIFY_OPTIONS: ["Politi", "AMK", "Brannvesenet", "Sikkerhetsleder", "Krisegruppen"],
+  BEREDSKAP_LEVELS: [
+    { value: "gronn", label: "Grønt beredskapsnivå", color: "#3dbe7b" },
+    { value: "gul", label: "Gult beredskapsnivå", color: "#e8c93d" },
+    { value: "rod", label: "Rødt beredskapsnivå", color: "#e5595e" },
+  ],
+  SCENE_COLORS: [
+    { value: "gronn", label: "Grønn scene", color: "#3dbe7b" },
+    { value: "gul", label: "Gul scene", color: "#e8c93d" },
+    { value: "oransje", label: "Oransje scene", color: "#e8873d" },
+    { value: "rod", label: "Rød scene", color: "#e5595e" },
+  ],
   entries: [],
   locations: [],
 
@@ -158,6 +169,16 @@ window.Log = {
       <div class="field"><label>${Lang.t("notified")}</label>
         <div class="check-list">${this.NOTIFY_OPTIONS.map((n) => `<label><input type="checkbox" value="${n}" class="notify-cb"> ${n}</label>`).join("")}</div>
       </div>
+      <div class="field"><label>${Lang.t("beredskap")}</label>
+        <div class="check-list">${this.BEREDSKAP_LEVELS.map((b) => `
+          <label class="color-chip" style="--chip-color:${b.color}"><input type="radio" name="in-beredskap" value="${b.value}"> ${b.label}</label>
+        `).join("")}</div>
+      </div>
+      <div class="field"><label>${Lang.t("scene_farge")}</label>
+        <div class="check-list">${this.SCENE_COLORS.map((s) => `
+          <label class="color-chip" style="--chip-color:${s.color}"><input type="radio" name="in-scene" value="${s.value}"> ${s.label}</label>
+        `).join("")}</div>
+      </div>
       <div class="field"><label>${Lang.t("attachments")}</label><input type="file" id="in-files" multiple></div>
       <button class="primary" onclick="Log.submit()">${Lang.t("save")}</button>
       <div id="form-error" class="error-text"></div>
@@ -175,6 +196,8 @@ window.Log = {
       return;
     }
     const notified = Array.from(document.querySelectorAll(".notify-cb:checked")).map((c) => c.value);
+    const beredskapsniva = document.querySelector('input[name="in-beredskap"]:checked')?.value || null;
+    const scene_farge = document.querySelector('input[name="in-scene"]:checked')?.value || null;
     const payload = {
       event_id: Auth.event.id,
       entry_kind: kind,
@@ -184,6 +207,8 @@ window.Log = {
       description,
       action_taken: g("in-action").trim() || null,
       notified,
+      beredskapsniva,
+      scene_farge,
       status: kind === "hendelse" ? "pagaende" : "avsluttet",
       created_by: Auth.profile.id,
       created_by_name: Auth.profile.full_name,
@@ -286,6 +311,13 @@ window.Log = {
     });
   },
 
+  _colorBadge(list, value) {
+    if (!value) return "";
+    const item = list.find((x) => x.value === value);
+    if (!item) return "";
+    return `<span class="badge" style="border-color:${item.color}; color:${item.color}">${item.label}</span>`;
+  },
+
   _entryHtml(e) {
     const isPrioritert = e.category === "Prioritert hendelse";
     const canWrite = Auth.canWrite();
@@ -296,6 +328,8 @@ window.Log = {
           <span class="display-id mono">${e.display_id}</span>
           <span class="badge ${isPrioritert ? "category-prioritert" : "info"}">${this.CATEGORY_LABELS[e.category]}</span>
           ${e.entry_kind === "hendelse" ? `<span class="badge ${e.status}">${Lang.t("status_" + e.status)}</span>` : ""}
+          ${this._colorBadge(this.BEREDSKAP_LEVELS, e.beredskapsniva)}
+          ${this._colorBadge(this.SCENE_COLORS, e.scene_farge)}
           ${e.is_edited ? `<button class="edited-tag" onclick="Log.showHistory('${e.id}')">${Lang.t("edited")}</button>` : ""}
           <span class="timestamp mono">${new Date(e.created_at).toLocaleString("no-NO")}</span>
         </div>

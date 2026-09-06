@@ -99,12 +99,14 @@ create table public.log_entries (
   display_id       text not null,                -- "H-001"
   event_id         uuid not null references public.events(id) on delete cascade,
   entry_kind       text not null check (entry_kind in ('info','hendelse')),
-  category         text not null check (category in ('Loggforing','Utvisning','Medisinsk hendelse','Hendelse','Prioritert hendelse')),
+  category         text not null check (category in ('Loggforing','Utvisning','Medisinsk hendelse','Hendelse','Prioritert hendelse','Scene','Vaer','Publikumstall')),
   location         text,
   reporter_source  text,                          -- Vekter / Frivillig / Politi / Annet / fritekst
   description      text not null,
   action_taken     text,
   notified         text[] not null default '{}',  -- Politi, AMK, Brannvesenet, Sikkerhetsleder, Krisegruppen
+  beredskapsniva   text check (beredskapsniva in ('gronn','gul','rod')),        -- valgfritt, kun 1 av gangen
+  scene_farge      text check (scene_farge in ('gronn','gul','oransje','rod')), -- valgfritt, kun 1 av gangen
   status           text not null default 'avsluttet' check (status in ('pagaende','avsluttet')),
   created_by       uuid references public.profiles(id),
   created_by_name  text not null,

@@ -327,3 +327,16 @@ table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 0.7
 .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.6rem; }
 .small { font-size: 0.8rem; color: var(--text-muted); }
 .lang-theme-toggle { display: flex; gap: 0.4rem; }
+
+.color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--chip-color, var(--border));
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.color-chip input { width: auto; accent-color: var(--chip-color, var(--accent)); }
+.color-chip:has(input:checked) { background: color-mix(in srgb, var(--chip-color, var(--border)) 18%, transparent); }

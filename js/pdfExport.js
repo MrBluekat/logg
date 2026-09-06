@@ -72,6 +72,8 @@ window.PDFExport = {
       text(e.description, 8.5);
       if (e.action_taken) text(`Tiltak: ${e.action_taken}`, 8);
       if (e.notified?.length) text(`Varslet: ${e.notified.join(", ")}`, 8);
+      if (e.beredskapsniva) text(`Beredskapsnivå: ${e.beredskapsniva}`, 8, "bold");
+      if (e.scene_farge) text(`Scenefarge: ${e.scene_farge}`, 8, "bold");
 
       const myComments = (comments || []).filter((c) => c.log_entry_id === e.id);
       myComments.forEach((c) => text(`↳ [${new Date(c.created_at).toLocaleString("no-NO")}] ${c.created_by_name}: ${c.comment_text}`, 7.5, "normal", "#333333", 6));
