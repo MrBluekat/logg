@@ -111,7 +111,6 @@ function wireUpEvents() {
   // Tømmer feltet før velgeren åpnes - uten dette kan enkelte mobilnettlesere la være å
   // varsle om en endring hvis du velger nøyaktig samme fil som forrige gang.
   el("new-photo").addEventListener("click", (e) => {
-    debugLog("Fil-felt trykket, tømmer verdi først");
     e.target.value = "";
   });
   el("new-form").addEventListener("submit", saveNewEntry);
@@ -119,6 +118,8 @@ function wireUpEvents() {
   el("cancel-new-task").addEventListener("click", () => { el("new-task-sheet").classList.add("hidden"); el("new-task-form").reset(); });
   el("new-task-sheet").addEventListener("click", (e) => { if (e.target.id === "new-task-sheet") { el("new-task-sheet").classList.add("hidden"); el("new-task-form").reset(); } });
   el("new-task-form").addEventListener("submit", saveNewTask);
+  el("close-notif-sheet").addEventListener("click", () => el("notif-sheet").classList.add("hidden"));
+  el("notif-sheet").addEventListener("click", (e) => { if (e.target.id === "notif-sheet") el("notif-sheet").classList.add("hidden"); });
 
   el("cancel-new-contact").addEventListener("click", () => { el("new-contact-sheet").classList.add("hidden"); el("new-contact-form").reset(); });
   el("new-contact-sheet").addEventListener("click", (e) => { if (e.target.id === "new-contact-sheet") { el("new-contact-sheet").classList.add("hidden"); el("new-contact-form").reset(); } });
@@ -131,6 +132,31 @@ function wireUpEvents() {
     unsubscribeRealtime();
     showEventPicker();
   });
+
+  document.querySelectorAll(".install-tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showInstallGuide(btn.dataset.platform));
+  });
+  showInstallGuide(/iphone|ipad|ipod/i.test(navigator.userAgent) ? "iphone" : "android");
+}
+
+const INSTALL_STEPS = {
+  android: [
+    "Trykk på menyknappen (⋮) øverst til høyre i nettleseren",
+    "Velg «Legg til på startskjerm» eller «Installer app»",
+    "Bekreft ved å trykke «Legg til» / «Installer»",
+  ],
+  iphone: [
+    "Trykk på Del-ikonet (firkant med pil opp) nederst på skjermen",
+    "Bla ned og velg «Legg til på Hjem-skjerm»",
+    "Trykk «Legg til» øverst til høyre",
+  ],
+};
+
+function showInstallGuide(platform) {
+  document.querySelectorAll(".install-tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.platform === platform);
+  });
+  el("install-steps").innerHTML = INSTALL_STEPS[platform].map((step) => `<li>${step}</li>`).join("");
 }
 
 async function logout() {
@@ -199,7 +225,7 @@ async function enterApp() {
   el("fab-new").style.display = canWrite() ? "flex" : "none";
   el("switch-event-btn").classList.toggle("hidden", profile.role !== "admin");
 
-  await Promise.all([loadEntries(), loadTasks(), loadContacts()]);
+  await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications()]);
   subscribeRealtime();
   maybeShowPushBanner();
 }
@@ -226,7 +252,10 @@ function subscribeRealtime() {
   const ch3 = db.channel("pwa-contacts-" + currentEvent.id)
     .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `event_id=eq.${currentEvent.id}` }, loadContacts)
     .subscribe();
-  activeChannels = [ch1, ch2, ch3];
+  const ch4 = db.channel("pwa-notifications-" + profile.id)
+    .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${profile.id}` }, loadNotifications)
+    .subscribe();
+  activeChannels = [ch1, ch2, ch3, ch4];
 }
 
 function unsubscribeRealtime() {
@@ -356,10 +385,8 @@ async function markClosed(entryId) {
 // Ny loggføring
 // ---------------------------------------------------------------------------
 function handlePhotoPreview(e) {
-  debugLog(`Fil-hendelse mottatt (${e.type}): ${e.target.files ? e.target.files.length : "ingen"} fil(er)`);
   selectedFiles = Array.from(e.target.files || []);
   const preview = el("photo-preview");
-  debugLog(`preview-element finnes: ${!!preview}, tømmer og bygger på nytt`);
   preview.innerHTML = "";
   if (!selectedFiles.length) return;
 
@@ -378,12 +405,10 @@ function handlePhotoPreview(e) {
         wrap.appendChild(chip);
       }
     } catch (err) {
-      debugLog("FEIL ved forhåndsvisning: " + err);
       console.error("Kunne ikke forhåndsvise fil:", err);
     }
   });
   preview.appendChild(wrap);
-  debugLog(`Forhåndsvisning ferdig - ${wrap.childElementCount} element(er) i wrap, preview har nå ${preview.childElementCount} barn`);
   const label = document.createElement("div");
   label.className = "file-preview-text";
   label.style.marginTop = "6px";
@@ -428,8 +453,6 @@ async function saveNewEntry(e) {
     }).select().single();
 
     if (error) throw error;
-
-    debugLog(`Lagrer hendelse - ${selectedFiles.length} fil(er) i selectedFiles ved lagring`);
     let uploadFailures = 0;
     for (const file of selectedFiles) {
       const path = `${currentEvent.id}/${created.id}/${Date.now()}_${file.name}`;
@@ -439,8 +462,7 @@ async function saveNewEntry(e) {
       const { error: upErr } = await db.storage.from("attachments").upload(path, arrayBuffer, {
         contentType: file.type || "application/octet-stream",
       });
-      if (upErr) { console.error(upErr); debugLog("Opplasting feilet: " + upErr.message); uploadFailures++; continue; }
-      debugLog("Fil lastet opp OK: " + file.name);
+      if (upErr) { console.error(upErr); uploadFailures++; continue; }
       await db.from("log_attachments").insert({
         event_id: currentEvent.id, log_entry_id: created.id, file_path: path,
         file_name: file.name, file_type: file.type, uploaded_by: user.id, uploaded_by_name: profile.full_name,
@@ -520,15 +542,32 @@ async function toggleTask(id, done) {
 async function saveNewTask(e) {
   e.preventDefault();
   const description = el("task-beskrivelse").value.trim();
-  const assigned_name = el("task-ansvarlig").value.trim();
   if (!description) return;
+
+  const assignSelect = el("task-assigned-select").value;
+  const customName = el("task-ansvarlig").value.trim();
+  let assigned_user_id = null;
+  let assigned_name = null;
+  if (assignSelect === "__custom") {
+    assigned_name = customName || null;
+  } else {
+    assigned_user_id = assignSelect;
+    assigned_name = eventUsers.find((u) => u.id === assignSelect)?.full_name || null;
+  }
+
   const { data: existing } = await db.from("tasks").select("sort_order").eq("event_id", currentEvent.id).order("sort_order", { ascending: false }).limit(1);
   const nextOrder = existing && existing.length ? existing[0].sort_order + 1 : 0;
   await db.from("tasks").insert({
-    event_id: currentEvent.id, description, assigned_name: assigned_name || null, sort_order: nextOrder,
+    event_id: currentEvent.id, description, assigned_name, assigned_user_id, sort_order: nextOrder,
   });
+
+  if (assigned_user_id) {
+    await notifyUser(assigned_user_id, currentEvent.id, "Ny oppgave tildelt", description);
+  }
+
   el("new-task-sheet").classList.add("hidden");
   el("new-task-form").reset();
+  el("task-assigned-select").value = "__custom";
   showToast("Oppgave lagt til");
   loadTasks();
 }
@@ -584,6 +623,73 @@ async function saveNewContact(e) {
   el("new-contact-form").reset();
   showToast("Kontakt lagt til");
   loadContacts();
+}
+
+// ---------------------------------------------------------------------------
+// Brukere tilknyttet arrangementet (kun disse - ikke alle brukere i systemet - kan tildeles oppgaver)
+// ---------------------------------------------------------------------------
+let eventUsers = [];
+
+async function loadEventUsers() {
+  const { data } = await db.from("profiles").select("id, full_name").eq("event_id", currentEvent.id).order("full_name");
+  eventUsers = data || [];
+  const select = el("task-assigned-select");
+  if (select) {
+    select.innerHTML = `<option value="__custom">Fritekst</option>` +
+      eventUsers.map((u) => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join("");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Varselsenter
+// ---------------------------------------------------------------------------
+let notifications = [];
+
+async function loadNotifications() {
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) return;
+  const { data } = await db.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
+  notifications = data || [];
+  updateNotifBadge();
+}
+
+function updateNotifBadge() {
+  const badge = el("notif-badge");
+  if (!badge) return;
+  const unread = notifications.filter((n) => !n.read).length;
+  badge.classList.toggle("hidden", unread === 0);
+}
+
+async function openNotificationCenter() {
+  const list = el("notif-list");
+  list.innerHTML = notifications.map((n) => `
+    <li class="notif-item ${n.read ? "" : "unread"}">
+      <div class="notif-title">${escapeHtml(n.title)}</div>
+      ${n.body ? `<div class="notif-body">${escapeHtml(n.body)}</div>` : ""}
+      <div class="notif-time">${formatTime(n.created_at)}</div>
+    </li>
+  `).join("") || `<li class="empty-state">Ingen varsler ennå.</li>`;
+  el("notif-sheet").classList.remove("hidden");
+
+  const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+  if (unreadIds.length) {
+    await db.from("notifications").update({ read: true }).in("id", unreadIds);
+    await loadNotifications();
+  }
+}
+
+// Sender varsel + push til én bestemt bruker (f.eks. ved tildeling av en oppgave)
+async function notifyUser(userId, eventId, title, body) {
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/send-push`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ user_id: userId, event_id: eventId, title, body }),
+    });
+  } catch (err) {
+    console.error("Kunne ikke sende varsel:", err);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -688,23 +794,4 @@ function showToast(msg) {
   toast.classList.remove("hidden");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.add("hidden"), 3000);
-}
-
-// --------------------------------------------------------------------------
-// MIDLERTIDIG feilsøkingslogg synlig nederst på skjermen - fjernes igjen når
-// bilde-opplastingsproblemet er løst. Ikke en del av normal drift.
-// --------------------------------------------------------------------------
-function debugLog(msg) {
-  console.log(msg);
-  let box = document.getElementById("debug-box");
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "debug-box";
-    box.style.cssText = "position:fixed;bottom:0;left:0;right:0;max-height:26vh;overflow-y:auto;background:rgba(0,0,0,0.9);color:#4dff4d;font-size:10px;line-height:1.4;padding:6px 8px;z-index:99999;font-family:monospace;border-top:2px solid #4dff4d;";
-    document.body.appendChild(box);
-  }
-  const line = document.createElement("div");
-  line.textContent = `${new Date().toLocaleTimeString()}  ${msg}`;
-  box.appendChild(line);
-  box.scrollTop = box.scrollHeight;
 }

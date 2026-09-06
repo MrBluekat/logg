@@ -1,6 +1,6 @@
 {
-  "name": "Arrangementslogg",
-  "short_name": "Arr.logg",
+  "name": "Arlogg",
+  "short_name": "Arlogg",
   "description": "Loggføring og oppgaver for vaktpersonell under arrangementer",
   "start_url": "./index.html",
   "scope": "./",
