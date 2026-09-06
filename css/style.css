@@ -101,6 +101,14 @@ input, select, textarea {
   padding: 0.5rem 0.6rem;
   width: 100%;
 }
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  height: auto;
+  padding: 0;
+  background: none;
+  border: initial;
+  accent-color: var(--accent);
+}
 textarea { resize: vertical; min-height: 4.5em; }
 
 label {
