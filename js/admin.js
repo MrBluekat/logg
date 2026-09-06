@@ -39,17 +39,26 @@ window.Admin = {
     `;
   },
 
+  DEFAULT_LOCATIONS: ["Innslipp", "Stage left", "Stage right", "Front of house", "Bar", "Toalettområde"],
+
   async createEvent() {
     const name = document.getElementById("ev-name").value.trim();
     const event_date = document.getElementById("ev-date").value || null;
     const activeFromVal = document.getElementById("ev-active-from").value;
     const activeUntilVal = document.getElementById("ev-active-until").value;
     if (!name) return;
-    await sb.from("events").insert({
+    const { data: created } = await sb.from("events").insert({
       name, event_date,
       active_from: activeFromVal ? new Date(activeFromVal).toISOString() : null,
       active_until: activeUntilVal ? new Date(activeUntilVal).toISOString() : null,
-    });
+    }).select().single();
+
+    if (created) {
+      await sb.from("locations").insert(
+        this.DEFAULT_LOCATIONS.map((name) => ({ event_id: created.id, name }))
+      );
+    }
+
     await this.refreshEvents();
     this._renderUserForm();
     this.toast("Arrangement opprettet");

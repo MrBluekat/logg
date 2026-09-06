@@ -189,11 +189,20 @@ window.Log = {
     const g = (id) => document.getElementById(id).value;
     const kind = g("in-kind");
     let location = g("in-location");
-    if (location === "__custom") location = g("in-location-custom").trim();
+    let isCustomLocation = false;
+    if (location === "__custom") {
+      location = g("in-location-custom").trim();
+      isCustomLocation = true;
+    }
     const description = g("in-description").trim();
     if (!description) {
       document.getElementById("form-error").textContent = "Beskrivelse må fylles ut.";
       return;
+    }
+    // Fritekst-lokasjon lagres automatisk for arrangementet, slik at den dukker opp i
+    // nedtrekksmenyen neste gang - loggeren slipper å skrive samme sted på nytt.
+    if (isCustomLocation && location && !this.locations.some((l) => l.name.toLowerCase() === location.toLowerCase())) {
+      await this.addLocation(location);
     }
     const notified = Array.from(document.querySelectorAll(".notify-cb:checked")).map((c) => c.value);
     const beredskapsniva = document.querySelector('input[name="in-beredskap"]:checked')?.value || null;
