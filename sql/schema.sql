@@ -212,6 +212,10 @@ alter table public.log_attachments  enable row level security;
 -- PROFILES
 create policy "profil: se egen eller admin ser alle" on public.profiles
   for select using (id = auth.uid() or public.current_role_name() = 'admin');
+create policy "profil: samme arrangement ser hverandre" on public.profiles
+  for select using (event_id = public.current_event_id());
+create policy "profil: alle ser admin-profiler" on public.profiles
+  for select using (role = 'admin');
 create policy "profil: kun admin oppretter/endrer" on public.profiles
   for insert with check (public.current_role_name() = 'admin');
 create policy "profil: kun admin oppdaterer" on public.profiles

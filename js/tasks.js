@@ -17,9 +17,11 @@ window.Tasks = {
     this.list = data || [];
   },
 
-  // Kun brukere (logger/observatør) tilknyttet DETTE arrangementet - ikke alle brukere i systemet.
+  // Kun brukere (logger/observatør) tilknyttet DETTE arrangementet - pluss admin, som
+  // alltid skal være tilgjengelig siden admin ikke er bundet til ett bestemt arrangement.
   async loadEventUsers() {
-    const { data } = await sb.from("profiles").select("id, full_name").eq("event_id", Auth.event.id).order("full_name");
+    const { data } = await sb.from("profiles").select("id, full_name")
+      .or(`event_id.eq.${Auth.event.id},role.eq.admin`).order("full_name");
     this.eventUsers = data || [];
     const select = document.getElementById("task-assigned-select");
     if (select) {

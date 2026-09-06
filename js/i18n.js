@@ -106,6 +106,13 @@ window.I18N = {
     no_notifications: "Ingen varsler ennå.",
     task_assign_method_text: "Fritekst",
     task_assign_method_user: "Bruker i loggen",
+    send_message: "Send melding",
+    recipient: "Mottaker",
+    message_text: "Melding",
+    message_placeholder: "Skriv en melding...",
+    message_missing_fields: "Velg mottaker og skriv en melding.",
+    message_from: "Melding fra",
+    send: "Send",
   },
   en: {
     login_title: "Log in",
@@ -214,6 +221,13 @@ window.I18N = {
     no_notifications: "No notifications yet.",
     task_assign_method_text: "Free text",
     task_assign_method_user: "User in the log",
+    send_message: "Send message",
+    recipient: "Recipient",
+    message_text: "Message",
+    message_placeholder: "Write a message...",
+    message_missing_fields: "Choose a recipient and write a message.",
+    message_from: "Message from",
+    send: "Send",
   },
 };
 

@@ -74,4 +74,41 @@ window.Notifications = {
       console.error("Kunne ikke sende varsel:", e);
     }
   },
+
+  // ------------------------------------------------------------------------
+  // Send manuell melding til en bruker tilknyttet arrangementet (envis - mottaker kan ikke svare)
+  // ------------------------------------------------------------------------
+  async openCompose() {
+    const { data } = await sb.from("profiles").select("id, full_name")
+      .or(`event_id.eq.${Auth.event.id},role.eq.admin`).order("full_name");
+    const users = (data || []).filter((u) => u.id !== Auth.profile.id);
+
+    const box = document.getElementById("history-modal");
+    box.innerHTML = `
+      <div class="panel" style="max-width:460px;margin:2rem auto;">
+        <div class="panel-head">${Lang.t("send_message")} <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
+        <div class="panel-body">
+          <div class="field"><label>${Lang.t("recipient")}</label>
+            <select id="msg-recipient">${users.map((u) => `<option value="${u.id}">${u.full_name}</option>`).join("") || `<option value="">–</option>`}</select>
+          </div>
+          <div class="field"><label>${Lang.t("message_text")}</label>
+            <textarea id="msg-text" placeholder="${Lang.t("message_placeholder")}"></textarea>
+          </div>
+          <button class="primary" onclick="Notifications.sendCompose()">${Lang.t("send")}</button>
+          <div id="msg-error" class="error-text"></div>
+        </div>
+      </div>`;
+    box.classList.remove("hidden");
+  },
+
+  async sendCompose() {
+    const recipientId = document.getElementById("msg-recipient").value;
+    const text = document.getElementById("msg-text").value.trim();
+    if (!recipientId || !text) {
+      document.getElementById("msg-error").textContent = Lang.t("message_missing_fields");
+      return;
+    }
+    await this.notifyUser(recipientId, Auth.event.id, `${Lang.t("message_from")} ${Auth.profile.full_name}`, text);
+    document.getElementById("history-modal").classList.add("hidden");
+  },
 };
