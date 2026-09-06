@@ -113,6 +113,7 @@ window.I18N = {
     message_missing_fields: "Velg mottaker og skriv en melding.",
     message_from: "Melding fra",
     send: "Send",
+    send_to_all: "Send til alle tilknyttet arrangementet",
   },
   en: {
     login_title: "Log in",
@@ -228,6 +229,7 @@ window.I18N = {
     message_missing_fields: "Choose a recipient and write a message.",
     message_from: "Message from",
     send: "Send",
+    send_to_all: "Send to everyone linked to the event",
   },
 };
 

@@ -91,6 +91,10 @@ window.Notifications = {
           <div class="field"><label>${Lang.t("recipient")}</label>
             <select id="msg-recipient">${users.map((u) => `<option value="${u.id}">${u.full_name}</option>`).join("") || `<option value="">–</option>`}</select>
           </div>
+          <label style="display:flex; align-items:center; gap:.4rem; margin-bottom:.9rem; font-size:.85rem">
+            <input type="checkbox" id="msg-send-all" onchange="document.getElementById('msg-recipient').disabled = this.checked">
+            ${Lang.t("send_to_all")}
+          </label>
           <div class="field"><label>${Lang.t("message_text")}</label>
             <textarea id="msg-text" placeholder="${Lang.t("message_placeholder")}"></textarea>
           </div>
@@ -102,13 +106,14 @@ window.Notifications = {
   },
 
   async sendCompose() {
+    const sendAll = document.getElementById("msg-send-all").checked;
     const recipientId = document.getElementById("msg-recipient").value;
     const text = document.getElementById("msg-text").value.trim();
-    if (!recipientId || !text) {
+    if ((!sendAll && !recipientId) || !text) {
       document.getElementById("msg-error").textContent = Lang.t("message_missing_fields");
       return;
     }
-    await this.notifyUser(recipientId, Auth.event.id, `${Lang.t("message_from")} ${Auth.profile.full_name}`, text);
+    await this.notifyUser(sendAll ? null : recipientId, Auth.event.id, `${Lang.t("message_from")} ${Auth.profile.full_name}`, text);
     document.getElementById("history-modal").classList.add("hidden");
   },
 };
