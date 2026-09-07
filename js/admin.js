@@ -94,13 +94,15 @@ window.Admin = {
       <div class="field"><label>${Lang.t("password")}</label><input id="u-password" type="password"></div>
       <div class="field"><label>${Lang.t("full_name")}</label><input id="u-fullname"></div>
       <div class="field"><label>${Lang.t("role")}</label>
-        <select id="u-role" onchange="document.getElementById('u-event-wrap').classList.toggle('hidden', this.value==='admin')">
+        <select id="u-role" onchange="document.getElementById('u-event-hint').classList.toggle('hidden', this.value!=='admin')">
           <option value="logger">${Lang.t("role_logger")}</option>
           <option value="observator">${Lang.t("role_observator")}</option>
           <option value="admin">${Lang.t("role_admin")}</option>
         </select></div>
       <div class="field" id="u-event-wrap"><label>${Lang.t("assigned_event")}</label>
-        <select id="u-event">${this.events.map((ev) => `<option value="${ev.id}">${ev.name}</option>`).join("")}</select></div>
+        <select id="u-event"><option value="">${Lang.t("no_event")}</option>${this.events.map((ev) => `<option value="${ev.id}">${ev.name}</option>`).join("")}</select>
+        <p class="small hidden" id="u-event-hint" style="margin-top:.3rem">${Lang.t("admin_event_optional_hint")}</p>
+      </div>
       <button class="primary" onclick="Admin.createUser()">${Lang.t("create")}</button>
       <div id="user-form-error" class="error-text"></div>
     `;
@@ -111,7 +113,11 @@ window.Admin = {
     const password = document.getElementById("u-password").value;
     const full_name = document.getElementById("u-fullname").value.trim();
     const role = document.getElementById("u-role").value;
-    const event_id = role === "admin" ? null : document.getElementById("u-event").value;
+    const event_id = document.getElementById("u-event").value || null;
+    if (role !== "admin" && !event_id) {
+      document.getElementById("user-form-error").textContent = "Logger/observatør må ha et tilknyttet arrangement.";
+      return;
+    }
     const errEl = document.getElementById("user-form-error");
     errEl.textContent = "";
     try {
@@ -170,11 +176,10 @@ window.Admin = {
     const eventEl = document.getElementById(`u-event-${userId}`);
     const fromEl = document.getElementById(`u-from-${userId}`);
     const untilEl = document.getElementById(`u-until-${userId}`);
-    const payload = {
-      active_from: fromEl.value ? new Date(fromEl.value).toISOString() : null,
-      active_until: untilEl.value ? new Date(untilEl.value).toISOString() : null,
-    };
+    const payload = {};
     if (eventEl) payload.event_id = eventEl.value || null;
+    if (fromEl) payload.active_from = fromEl.value ? new Date(fromEl.value).toISOString() : null;
+    if (untilEl) payload.active_until = untilEl.value ? new Date(untilEl.value).toISOString() : null;
     const { error } = await sb.from("profiles").update(payload).eq("id", userId);
     if (error) { alert("Feil: " + error.message); return; }
     await this.refreshUsers();
@@ -199,14 +204,15 @@ window.Admin = {
           <td class="mono">${u.username}</td>
           <td>${u.full_name}</td>
           <td>${Lang.t("role_" + u.role)}</td>
-          <td>${u.role === "admin" ? "–" : `
+          <td>
             <select id="u-event-${u.id}">
+              <option value="">${Lang.t("no_event")}</option>
               ${this.events.map((ev) => `<option value="${ev.id}" ${ev.id === u.event_id ? "selected" : ""}>${ev.name}</option>`).join("")}
-            </select>`}</td>
+            </select></td>
           <td>${u.role === "admin" ? "–" : `<input type="datetime-local" id="u-from-${u.id}" value="${this._toDatetimeLocal(u.active_from)}" style="min-width:170px">`}</td>
           <td>${u.role === "admin" ? "–" : `<input type="datetime-local" id="u-until-${u.id}" value="${this._toDatetimeLocal(u.active_until)}" style="min-width:170px">`}</td>
           <td style="white-space:nowrap">
-            ${u.role === "admin" ? "" : `<button class="ghost" onclick="Admin.saveUserRow('${u.id}')">${Lang.t("save_row")}</button>`}
+            <button class="ghost" onclick="Admin.saveUserRow('${u.id}')">${Lang.t("save_row")}</button>
             <button class="ghost" onclick="Admin.resetPassword('${u.id}')">${Lang.t("reset_password")}</button>
             <button class="danger" onclick="Admin.deleteUser('${u.id}')">${Lang.t("delete_user")}</button>
           </td>

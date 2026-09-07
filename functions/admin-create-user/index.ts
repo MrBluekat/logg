@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       username: username.trim().toLowerCase(),
       full_name,
       role,
-      event_id: role === "admin" ? null : event_id,
+      event_id: event_id || null,
     });
     if (profileErr) {
       await admin.auth.admin.deleteUser(created.user.id);

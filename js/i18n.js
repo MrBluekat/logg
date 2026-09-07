@@ -119,6 +119,8 @@ window.I18N = {
     send_to_all: "Send til alle tilknyttet arrangementet",
     pdf_logo_prompt: "Legg til logo (valgfritt) – vises øverst på forsiden",
     user_guide: "Brukerveiledning",
+    no_event: "– Ingen –",
+    admin_event_optional_hint: "Valgfritt for admin. Tilknyttes admin et arrangement, mottar admin også varsler fra det arrangementet.",
   },
   en: {
     login_title: "Log in",
@@ -240,6 +242,8 @@ window.I18N = {
     send_to_all: "Send to everyone linked to the event",
     pdf_logo_prompt: "Add a logo (optional) – shown at the top of the cover page",
     user_guide: "User guide",
+    no_event: "– None –",
+    admin_event_optional_hint: "Optional for admin. If linked to an event, admin will also receive notifications from that event.",
   },
 };
 
