@@ -17,6 +17,7 @@
     <button class="ghost" style="position:relative" onclick="Notifications.open()">🔔 <span data-i18n="notification_center">Varselsenter</span><span id="notif-badge" class="notif-badge hidden"></span></button>
     <button class="ghost" id="send-message-btn" onclick="Notifications.openCompose()">✉️ <span data-i18n="send_message">Send melding</span></button>
     <button class="ghost" onclick="Dashboard.open()">📊 <span data-i18n="dashboard">Dashboard</span></button>
+    <button class="ghost" onclick="Guide.open()">📘 <span data-i18n="user_guide">Brukerveiledning</span></button>
     <div class="lang-theme-toggle">
       <button class="ghost" onclick="Lang.set('no'); rerender()">NO</button>
       <button class="ghost" onclick="Lang.set('en'); rerender()">EN</button>
@@ -128,6 +129,7 @@
   <script src="js/files.js"></script>
   <script src="js/tasks.js"></script>
   <script src="js/notifications.js"></script>
+  <script src="js/guide.js"></script>
   <script>
     function toggleEntryForm() {
       const body = document.getElementById("entry-form");

@@ -118,6 +118,7 @@ window.I18N = {
     send: "Send",
     send_to_all: "Send til alle tilknyttet arrangementet",
     pdf_logo_prompt: "Legg til logo (valgfritt) – vises øverst på forsiden",
+    user_guide: "Brukerveiledning",
   },
   en: {
     login_title: "Log in",
@@ -238,6 +239,7 @@ window.I18N = {
     send: "Send",
     send_to_all: "Send to everyone linked to the event",
     pdf_logo_prompt: "Add a logo (optional) – shown at the top of the cover page",
+    user_guide: "User guide",
   },
 };
 

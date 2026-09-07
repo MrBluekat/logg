@@ -1,19 +1,31 @@
 window.Notifications = {
   list: [],
   isOpen: false,
+  _seenIds: new Set(),
+  _initialized: false,
 
   async init() {
     await this.load();
     this._updateBadge();
     this._subscribeRealtime();
+    // Spør om lov til å vise skrivebordsvarsler (native OS-popup) - helt valgfritt,
+    // vi viser uansett en innebygd popup i appen selv om dette avslås.
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
   },
 
   async load() {
     const { data } = await sb.from("notifications").select("*")
       .eq("user_id", Auth.profile.id).order("created_at", { ascending: false }).limit(50);
-    this.list = data || [];
+    const rows = data || [];
+    const newUnread = this._initialized ? rows.filter((n) => !n.read && !this._seenIds.has(n.id)) : [];
+    rows.forEach((n) => this._seenIds.add(n.id));
+    this.list = rows;
     this._updateBadge();
     if (this.isOpen) this._render();
+    this._initialized = true;
+    newUnread.forEach((n) => this._showPopup(n));
   },
 
   _subscribeRealtime() {
@@ -27,6 +39,34 @@ window.Notifications = {
     if (!badge) return;
     const unread = this.list.filter((n) => !n.read).length;
     badge.classList.toggle("hidden", unread === 0);
+  },
+
+  // Viser varselet som en ekte skrivebords-popup (hvis tillatt), og alltid som en
+  // liten boks nede i hjørnet av selve appen - slik at brukeren ser det uansett
+  // om nettleseren har fått lov til å vise systemvarsler eller ikke.
+  _showPopup(n) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      try {
+        const osNotif = new Notification(n.title, { body: n.body || "" });
+        osNotif.onclick = () => { window.focus(); Notifications.open(); osNotif.close(); };
+      } catch (e) { console.error("Kunne ikke vise skrivebordsvarsel:", e); }
+    }
+    this._showToast(n);
+  },
+
+  _showToast(n) {
+    let wrap = document.getElementById("notif-popup-container");
+    if (!wrap) {
+      wrap = document.createElement("div");
+      wrap.id = "notif-popup-container";
+      document.body.appendChild(wrap);
+    }
+    const card = document.createElement("div");
+    card.className = "notif-popup";
+    card.innerHTML = `<strong>🔔 ${n.title}</strong>${n.body ? `<p>${n.body}</p>` : ""}`;
+    card.onclick = () => { Notifications.open(); card.remove(); };
+    wrap.appendChild(card);
+    setTimeout(() => card.remove(), 8000);
   },
 
   async open() {
