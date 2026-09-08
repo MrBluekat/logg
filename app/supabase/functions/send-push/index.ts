@@ -1,15 +1,17 @@
-// Eksempel på Supabase Edge Function som:
-// 1. Lagrer varselet i varselsenteret (notifications-tabellen)
-// 2. Sender push-varsel til alle relevante abonnenter
+// Sender push-varsel + lagrer i varselsenteret (notifications-tabellen).
 //
-// Kalles på to måter:
-// A) Manuelt fra egen kode: { title, body, url, user_id, event_id }
-//    - user_id satt = varsel til akkurat den brukeren (f.eks. tildelt oppgave)
-//    - kun event_id satt (ingen user_id) = kringkasting til alle brukere tilknyttet arrangementet
-// B) Automatisk fra en Supabase Database Webhook på log_entries (INSERT):
-//    { type: "INSERT", table: "log_entries", record: {...hele raden...} }
-//    Da avgjør funksjonen SELV om varselet faktisk skal sendes (se buildAutoNotification),
-//    og kringkaster i så fall til alle tilknyttet arrangementet.
+// Kalles på to måter, med to helt ulike sikkerhetssjekker:
+//
+// A) Automatisk fra en Supabase Database Webhook på log_entries (INSERT):
+//    { type: "INSERT", table: "log_entries", record: {...} }
+//    Godkjennes KUN hvis header "x-webhook-secret" matcher hemmeligheten
+//    WEBHOOK_SECRET (satt i Supabase secrets) - forhindrer at noen utenfra
+//    forfalsker en kringkasting ved å late som de er webhooken.
+//
+// B) Manuelt fra selve appen: { title, body, url, user_id, event_id }
+//    Krever en ekte innlogget bruker (admin eller logger - IKKE observatør).
+//    En logger kan kun sende til/kringkaste innenfor sitt EGET arrangement.
+//    Admin kan sende til/for hvilket som helst arrangement.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3";
@@ -27,8 +29,15 @@ const supabase = createClient(
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-secret",
 };
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 const BEREDSKAP_LABELS = { gronn: "Grønt", gul: "Gult", rod: "Rødt" };
 const SCENE_LABELS = { gronn: "Grønn", gul: "Gul", oransje: "Oransje", rod: "Rød" };
@@ -51,8 +60,6 @@ function buildAutoNotification(record) {
   };
 }
 
-// Lagrer varselet i varselsenteret. Enten til én bestemt bruker, eller (hvis ingen
-// user_id oppgis) kringkastet til alle brukere tilknyttet arrangementet.
 async function insertNotifications(event_id, user_id, title, body) {
   if (user_id) {
     await supabase.from("notifications").insert({ event_id, user_id, title, body });
@@ -76,18 +83,56 @@ Deno.serve(async (req) => {
 
     let title, body, url, user_id, event_id;
 
+    // ---- VEI A: automatisk fra Database Webhook ----
     if (payload.table === "log_entries" && payload.record) {
-      const notification = buildAutoNotification(payload.record);
-      if (!notification) {
-        return new Response(JSON.stringify({ skipped: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const providedSecret = req.headers.get("x-webhook-secret");
+      const expectedSecret = Deno.env.get("WEBHOOK_SECRET");
+      if (!expectedSecret || providedSecret !== expectedSecret) {
+        return json({ error: "Ugyldig eller manglende webhook-hemmelighet" }, 401);
       }
+
+      const notification = buildAutoNotification(payload.record);
+      if (!notification) return json({ skipped: true });
       title = notification.title;
       body = notification.body;
       event_id = payload.record.event_id;
+
+    // ---- VEI B: manuelt fra appen - krever ekte innlogget admin/logger ----
     } else {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL"),
+        Deno.env.get("SUPABASE_ANON_KEY"),
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: userData, error: userErr } = await anonClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        return json({ error: "Ikke innlogget" }, 401);
+      }
+
+      const { data: callerProfile } = await supabase
+        .from("profiles").select("role, event_id").eq("id", userData.user.id).single();
+
+      if (!callerProfile || callerProfile.role === "observator") {
+        return json({ error: "Ikke tillatt for denne rollen" }, 403);
+      }
+
       ({ title, body, url, user_id, event_id } = payload);
+      if (!title) return json({ error: "Mangler tittel" }, 400);
+
+      // Logger kan kun sende innenfor sitt eget arrangement - ikke andre arrangementer
+      if (callerProfile.role === "logger") {
+        if (event_id !== callerProfile.event_id) {
+          return json({ error: "Kan kun sende innenfor eget arrangement" }, 403);
+        }
+        if (user_id) {
+          const { data: recipient } = await supabase.from("profiles").select("event_id").eq("id", user_id).single();
+          if (!recipient || recipient.event_id !== callerProfile.event_id) {
+            return json({ error: "Mottaker tilhører ikke ditt arrangement" }, 403);
+          }
+        }
+      }
+      // admin: ingen ekstra begrensning - kan sende for ethvert arrangement
     }
 
     await insertNotifications(event_id, user_id, title, body);
@@ -96,16 +141,9 @@ Deno.serve(async (req) => {
     if (user_id) query = query.eq("user_id", user_id);
     if (event_id) query = query.eq("event_id", event_id);
     const { data: subs, error } = await query;
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (error) return json({ error: error.message }, 500);
 
     const notificationPayload = JSON.stringify({ title, body, url });
-
     const results = await Promise.allSettled(
       (subs || []).map((sub) =>
         webpush.sendNotification(
@@ -114,17 +152,11 @@ Deno.serve(async (req) => {
         )
       )
     );
-
     const succeeded = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected");
 
-    return new Response(JSON.stringify({ attempted: results.length, succeeded, failed: failed.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ attempted: results.length, succeeded, failed: failed.length });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: String(e) }, 500);
   }
 });

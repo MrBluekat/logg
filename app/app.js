@@ -684,7 +684,7 @@ let notifications = [];
 async function loadNotifications() {
   const { data: { user } } = await db.auth.getUser();
   if (!user) return;
-  const { data } = await db.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
+  const { data } = await db.from("notifications").select("*").eq("user_id", user.id).eq("event_id", currentEvent.id).order("created_at", { ascending: false }).limit(50);
   notifications = data || [];
   updateNotifBadge();
 }
