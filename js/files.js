@@ -60,7 +60,7 @@ window.Files = {
       <div class="panel" style="max-width:800px;margin:2rem auto;">
         <div class="panel-head">
           <button class="ghost" onclick="Files._renderList()">← ${Lang.t("files")}</button>
-          <span>${file.file_name}</span>
+          <span>${escapeHtml(file.file_name)}</span>
           <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button>
         </div>
         <div class="panel-body">${body}</div>
@@ -80,9 +80,9 @@ window.Files = {
             <tbody>
               ${this.list.map((f) => `
                 <tr>
-                  <td><a href="#" onclick="Files.preview('${f.id}'); return false;">📎 ${f.file_name}</a></td>
+                  <td><a href="#" onclick="Files.preview('${f.id}'); return false;">📎 ${escapeHtml(f.file_name)}</a></td>
                   <td class="small">${f.log_entry_id ? Lang.t("file_source_log") : Lang.t("file_source_manual")}</td>
-                  <td class="small">${f.uploaded_by_name || "–"}</td>
+                  <td class="small">${escapeHtml(f.uploaded_by_name || "–")}</td>
                   <td class="small mono">${new Date(f.uploaded_at).toLocaleString("no-NO")}</td>
                   ${canWrite ? `<td><button class="ghost" onclick="Files.remove('${f.id}')">${Lang.t("remove")}</button></td>` : ""}
                 </tr>`).join("") || `<tr><td colspan="5" class="small">–</td></tr>`}

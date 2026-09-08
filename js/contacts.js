@@ -84,7 +84,7 @@ window.Contacts = {
                 return `<div ${canWrite ? `draggable="true" ondragstart="Contacts._onDragStart('${c.id}')" ondragover="event.preventDefault()" ondrop="Contacts._onDrop('${c.id}')"` : ""}
                   style="display:flex; align-items:center; gap:.5rem; padding:.5rem .6rem; border-bottom:1px solid var(--border); cursor:${canWrite ? "grab" : "default"}">
                   ${canWrite ? `<span class="small">⠿</span>` : ""}
-                  <strong style="white-space:nowrap; font-size:.85rem">${c.name}</strong>
+                  <strong style="white-space:nowrap; font-size:.85rem">${escapeHtml(c.name)}</strong>
                   <div style="flex:1; border-top:1px solid var(--border)"></div>
                   ${canWrite ? `<button class="ghost" style="padding:.1rem .4rem" onclick="Contacts.remove('${c.id}')">${Lang.t("remove")}</button>` : ""}
                 </div>`;
@@ -92,10 +92,10 @@ window.Contacts = {
               return `<div ${canWrite ? `draggable="true" ondragstart="Contacts._onDragStart('${c.id}')" ondragover="event.preventDefault()" ondrop="Contacts._onDrop('${c.id}')"` : ""}
                 style="display:grid; grid-template-columns:${canWrite ? "20px" : ""} 1.3fr 1fr 1.3fr 1fr ${canWrite ? "auto" : ""}; gap:0 .6rem; align-items:center; padding:.35rem .6rem; border-bottom:1px solid var(--border); font-size:.88rem; cursor:${canWrite ? "grab" : "default"}">
                 ${canWrite ? `<span class="small">⠿</span>` : ""}
-                <span>${c.name}</span>
-                <span class="mono small">${c.phone || "–"}</span>
-                <span class="small">${c.email || "–"}</span>
-                <span class="small">${c.organization || "–"}</span>
+                <span>${escapeHtml(c.name)}</span>
+                <span class="mono small">${escapeHtml(c.phone || "–")}</span>
+                <span class="small">${escapeHtml(c.email || "–")}</span>
+                <span class="small">${escapeHtml(c.organization || "–")}</span>
                 ${canWrite ? `<button class="ghost" style="padding:.1rem .4rem" onclick="Contacts.remove('${c.id}')">${Lang.t("remove")}</button>` : ""}
               </div>`;
             }).join("") || `<div class="small" style="padding:.6rem">–</div>`}

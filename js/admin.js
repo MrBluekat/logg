@@ -69,7 +69,7 @@ window.Admin = {
       <table class="data-table"><thead><tr><th>${Lang.t("event_name")}</th><th>${Lang.t("event_date")}</th><th>Status</th><th></th></tr></thead>
       <tbody>${this.events.map((ev) => `
         <tr>
-          <td>${ev.name}</td>
+          <td>${escapeHtml(ev.name)}</td>
           <td class="mono">${ev.event_date || "–"}</td>
           <td>${ev.status}</td>
           <td>
@@ -100,7 +100,7 @@ window.Admin = {
           <option value="admin">${Lang.t("role_admin")}</option>
         </select></div>
       <div class="field" id="u-event-wrap"><label>${Lang.t("assigned_event")}</label>
-        <select id="u-event"><option value="">${Lang.t("no_event")}</option>${this.events.map((ev) => `<option value="${ev.id}">${ev.name}</option>`).join("")}</select>
+        <select id="u-event"><option value="">${Lang.t("no_event")}</option>${this.events.map((ev) => `<option value="${ev.id}">${escapeHtml(ev.name)}</option>`).join("")}</select>
         <p class="small hidden" id="u-event-hint" style="margin-top:.3rem">${Lang.t("admin_event_optional_hint")}</p>
       </div>
       <button class="primary" onclick="Admin.createUser()">${Lang.t("create")}</button>
@@ -201,13 +201,13 @@ window.Admin = {
       </tr></thead>
       <tbody>${this.users.map((u) => `
         <tr>
-          <td class="mono">${u.username}</td>
-          <td>${u.full_name}</td>
+          <td class="mono">${escapeHtml(u.username)}</td>
+          <td>${escapeHtml(u.full_name)}</td>
           <td>${Lang.t("role_" + u.role)}</td>
           <td>
             <select id="u-event-${u.id}">
               <option value="">${Lang.t("no_event")}</option>
-              ${this.events.map((ev) => `<option value="${ev.id}" ${ev.id === u.event_id ? "selected" : ""}>${ev.name}</option>`).join("")}
+              ${this.events.map((ev) => `<option value="${ev.id}" ${ev.id === u.event_id ? "selected" : ""}>${escapeHtml(ev.name)}</option>`).join("")}
             </select></td>
           <td>${u.role === "admin" ? "–" : `<input type="datetime-local" id="u-from-${u.id}" value="${this._toDatetimeLocal(u.active_from)}" style="min-width:170px">`}</td>
           <td>${u.role === "admin" ? "–" : `<input type="datetime-local" id="u-until-${u.id}" value="${this._toDatetimeLocal(u.active_until)}" style="min-width:170px">`}</td>

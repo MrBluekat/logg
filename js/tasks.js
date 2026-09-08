@@ -26,7 +26,7 @@ window.Tasks = {
     const select = document.getElementById("task-assigned-select");
     if (select) {
       select.innerHTML = `<option value="__custom">${Lang.t("task_assign_method_text")}</option>` +
-        this.eventUsers.map((u) => `<option value="${u.id}">${u.full_name}</option>`).join("");
+        this.eventUsers.map((u) => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join("");
     }
   },
 
@@ -164,7 +164,7 @@ window.Tasks = {
       <div class="timer ${t.timer_state === "running" ? "running" : ""} ${t.done ? "done" : ""}" style="flex-wrap:wrap">
         <input type="checkbox" ${t.done ? "checked" : ""} ${canWrite ? `onchange="Tasks.toggleDone('${t.id}')"` : "disabled"}>
         <span class="name" style="${t.done ? "text-decoration:line-through; color:var(--text-muted)" : ""}">
-          ${t.description}${t.assigned_name ? ` <span class="small">— ${t.assigned_name}</span>` : ""}
+          ${escapeHtml(t.description)}${t.assigned_name ? ` <span class="small">— ${escapeHtml(t.assigned_name)}</span>` : ""}
         </span>
         ${t.has_timer ? `
           <span class="display">${this._fmt(this._displaySeconds(t))}</span>

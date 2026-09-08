@@ -57,7 +57,7 @@ window.Log = {
         <div class="panel-head">${Lang.t("manage_locations")} <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
         <div class="panel-body">
           <ul>${this.locations.map((l) => `<li style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
-            <span>${l.name}</span> ${canWrite ? `<button class="ghost" onclick="Log.removeLocation('${l.id}')">${Lang.t("remove")}</button>` : ""}
+            <span>${escapeHtml(l.name)}</span> ${canWrite ? `<button class="ghost" onclick="Log.removeLocation('${l.id}')">${Lang.t("remove")}</button>` : ""}
           </li>`).join("") || `<li class="small">–</li>`}</ul>
           ${canWrite ? `
             <div class="row"><input id="new-loc-name" placeholder="${Lang.t("add_location")}" style="flex:1">
@@ -133,7 +133,7 @@ window.Log = {
         ${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
       <div class="field"><label>${Lang.t("location")}</label>
         <select id="f-location" onchange="Log.applyFilters()"><option value="">${Lang.t("all_locations")}</option>
-        ${this.locations.map((l) => `<option value="${l.name}">${l.name}</option>`).join("")}</select></div>
+        ${this.locations.map((l) => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join("")}</select></div>
       <div class="field"><label>${Lang.t("category").includes("type") ? "" : ""}${Lang.t("status_pagaende")}/${Lang.t("status_avsluttet")}</label>
         <select id="f-status" onchange="Log.applyFilters()"><option value="">${Lang.t("all_statuses")}</option>
         <option value="pagaende">${Lang.t("status_pagaende")}</option><option value="avsluttet">${Lang.t("status_avsluttet")}</option></select></div>
@@ -159,7 +159,7 @@ window.Log = {
         <div class="field"><label>${Lang.t("location")} <button class="ghost" style="padding:.1rem .4rem" onclick="Log.manageLocations()">⚙</button></label>
           <select id="in-location" onchange="document.getElementById('in-location-custom').classList.toggle('hidden', this.value !== '__custom')">
             <option value="">–</option>
-            ${this.locations.map((l) => `<option value="${l.name}">${l.name}</option>`).join("")}
+            ${this.locations.map((l) => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join("")}
             <option value="__custom">${Lang.t("location_custom")}</option>
           </select>
           <input id="in-location-custom" class="hidden" placeholder="${Lang.t("location_custom")}" style="margin-top:.4rem">
@@ -288,8 +288,8 @@ window.Log = {
     if (!entry) return;
     const el = document.getElementById(`entry-${entryId}`);
     el.querySelector(".edit-area").innerHTML = `
-      <div class="field"><textarea id="edit-desc-${entryId}">${entry.description}</textarea></div>
-      <div class="field"><textarea id="edit-action-${entryId}">${entry.action_taken || ""}</textarea></div>
+      <div class="field"><textarea id="edit-desc-${entryId}">${escapeHtml(entry.description)}</textarea></div>
+      <div class="field"><textarea id="edit-action-${entryId}">${escapeHtml(entry.action_taken || "")}</textarea></div>
       <button class="primary" onclick="Log.saveEdit('${entryId}')">${Lang.t("save")}</button>
     `;
     el.querySelector(".edit-area").classList.remove("hidden");
@@ -310,8 +310,8 @@ window.Log = {
       <div class="panel" style="max-width:520px;margin:3rem auto;">
         <div class="panel-head">Versjonshistorikk <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
         <div class="panel-body">
-          ${(data || []).map((h) => `<div class="log-entry"><div class="meta">${new Date(h.changed_at).toLocaleString("no-NO")} — ${h.changed_by_name}</div>
-            <p>${h.previous_data.description}</p><p class="small">${h.previous_data.action_taken || ""}</p></div>`).join("") || "<p class='small'>Ingen tidligere versjoner.</p>"}
+          ${(data || []).map((h) => `<div class="log-entry"><div class="meta">${new Date(h.changed_at).toLocaleString("no-NO")} — ${escapeHtml(h.changed_by_name)}</div>
+            <p>${escapeHtml(h.previous_data.description)}</p><p class="small">${escapeHtml(h.previous_data.action_taken || "")}</p></div>`).join("") || "<p class='small'>Ingen tidligere versjoner.</p>"}
         </div>
       </div>`;
     box.classList.remove("hidden");
@@ -358,18 +358,18 @@ window.Log = {
           ${e.is_edited ? `<button class="edited-tag" onclick="Log.showHistory('${e.id}')">${Lang.t("edited")}</button>` : ""}
           <span class="timestamp mono">${new Date(e.created_at).toLocaleString("no-NO")}</span>
         </div>
-        <p class="desc">${e.description}</p>
-        ${e.action_taken ? `<p class="small">${Lang.t("action_taken")}: ${e.action_taken}</p>` : ""}
+        <p class="desc">${escapeHtml(e.description)}</p>
+        ${e.action_taken ? `<p class="small">${Lang.t("action_taken")}: ${escapeHtml(e.action_taken)}</p>` : ""}
         <div class="meta">
-          ${e.location ? `<span>${Lang.t("location")}: ${e.location}</span>` : ""}
-          ${e.reporter_source ? `<span>${Lang.t("reporter_source")}: ${e.reporter_source}</span>` : ""}
+          ${e.location ? `<span>${Lang.t("location")}: ${escapeHtml(e.location)}</span>` : ""}
+          ${e.reporter_source ? `<span>${Lang.t("reporter_source")}: ${escapeHtml(e.reporter_source)}</span>` : ""}
           ${e.notified?.length ? `<span>${Lang.t("notified")}: ${e.notified.join(", ")}</span>` : ""}
-          <span>${e.created_by_name}</span>
+          <span>${escapeHtml(e.created_by_name)}</span>
         </div>
-        ${e.attachments.length ? `<div class="attachments">${e.attachments.map((a) => `<a id="att-${a.id}" href="#" target="_blank">📎 ${a.file_name}</a>`).join("")}</div>` : ""}
+        ${e.attachments.length ? `<div class="attachments">${e.attachments.map((a) => `<a id="att-${a.id}" href="#" target="_blank">📎 ${escapeHtml(a.file_name)}</a>`).join("")}</div>` : ""}
         ${e.entry_kind === "hendelse" ? `
           <div class="comments">
-            ${e.comments.map((c) => `<div class="comment"><div class="who">${new Date(c.created_at).toLocaleString("no-NO")} — ${c.created_by_name}</div>${c.comment_text}</div>`).join("")}
+            ${e.comments.map((c) => `<div class="comment"><div class="who">${new Date(c.created_at).toLocaleString("no-NO")} — ${escapeHtml(c.created_by_name)}</div>${escapeHtml(c.comment_text)}</div>`).join("")}
             ${canWrite && e.status === "pagaende" ? `
               <div class="row" style="margin-left:1.4rem">
                 <input id="comment-input-${e.id}" placeholder="${Lang.t("comment_placeholder")}" style="flex:1">

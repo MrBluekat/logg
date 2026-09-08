@@ -17,7 +17,7 @@ window.Notifications = {
 
   async load() {
     const { data } = await sb.from("notifications").select("*")
-      .eq("user_id", Auth.profile.id).order("created_at", { ascending: false }).limit(50);
+      .eq("user_id", Auth.profile.id).eq("event_id", Auth.event.id).order("created_at", { ascending: false }).limit(50);
     const rows = data || [];
     const newUnread = this._initialized ? rows.filter((n) => !n.read && !this._seenIds.has(n.id)) : [];
     rows.forEach((n) => this._seenIds.add(n.id));
@@ -47,7 +47,7 @@ window.Notifications = {
   _showPopup(n) {
     if ("Notification" in window && Notification.permission === "granted") {
       try {
-        const osNotif = new Notification(n.title, { body: n.body || "" });
+        const osNotif = new Notification(n.title, { body: n.body || "" }); // native OS-varsel - trenger ikke escapes (ikke HTML)
         osNotif.onclick = () => { window.focus(); Notifications.open(); osNotif.close(); };
       } catch (e) { console.error("Kunne ikke vise skrivebordsvarsel:", e); }
     }
@@ -63,7 +63,7 @@ window.Notifications = {
     }
     const card = document.createElement("div");
     card.className = "notif-popup";
-    card.innerHTML = `<strong>🔔 ${n.title}</strong>${n.body ? `<p>${n.body}</p>` : ""}`;
+    card.innerHTML = `<strong>🔔 ${escapeHtml(n.title)}</strong>${n.body ? `<p>${escapeHtml(n.body)}</p>` : ""}`;
     card.onclick = () => { Notifications.open(); card.remove(); };
     wrap.appendChild(card);
     setTimeout(() => card.remove(), 8000);
@@ -92,8 +92,8 @@ window.Notifications = {
         <div class="panel-body" style="max-height:60vh; overflow-y:auto">
           ${this.list.map((n) => `
             <div class="log-entry" style="${n.read ? "" : "border-left:3px solid var(--accent)"}">
-              <div class="row1"><strong>${n.title}</strong><span class="timestamp mono">${new Date(n.created_at).toLocaleString("no-NO")}</span></div>
-              ${n.body ? `<p class="desc">${n.body}</p>` : ""}
+              <div class="row1"><strong>${escapeHtml(n.title)}</strong><span class="timestamp mono">${new Date(n.created_at).toLocaleString("no-NO")}</span></div>
+              ${n.body ? `<p class="desc">${escapeHtml(n.body)}</p>` : ""}
             </div>
           `).join("") || `<p class="small">${Lang.t("no_notifications")}</p>`}
         </div>
@@ -129,7 +129,7 @@ window.Notifications = {
         <div class="panel-head">${Lang.t("send_message")} <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
         <div class="panel-body">
           <div class="field"><label>${Lang.t("recipient")}</label>
-            <select id="msg-recipient">${users.map((u) => `<option value="${u.id}">${u.full_name}</option>`).join("") || `<option value="">–</option>`}</select>
+            <select id="msg-recipient">${users.map((u) => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join("") || `<option value="">–</option>`}</select>
           </div>
           <label style="display:flex; align-items:center; gap:.4rem; margin-bottom:.9rem; font-size:.85rem">
             <input type="checkbox" id="msg-send-all" onchange="document.getElementById('msg-recipient').disabled = this.checked">
