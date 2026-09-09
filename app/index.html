@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
+<script>
+  // Retter automatisk til en avsluttende skråstrek (f.eks. /app -> /app/) hvis den mangler -
+  // uten denne kan relative filstier (css/js/manifest) knekke på enkelte oppsett.
+  (function () {
+    var path = location.pathname;
+    var lastSegment = path.split("/").pop();
+    if (lastSegment && lastSegment.indexOf(".") === -1) {
+      location.replace(path + "/" + location.search + location.hash);
+    }
+  })();
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Arlogg</title>
