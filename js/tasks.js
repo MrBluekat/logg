@@ -85,6 +85,7 @@ window.Tasks = {
 
     if (assigned_user_id) {
       await Notifications.notifyUser(assigned_user_id, Auth.event.id, "Ny oppgave tildelt", description);
+      Auth.logActivity("Tildelte oppgave", `${description} → ${assigned_name}`);
     }
 
     document.getElementById("task-description").value = "";

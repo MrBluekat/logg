@@ -20,6 +20,7 @@ window.Auth = {
       return null;
     }
     this._resetInactivityTimer();
+    this._startHeartbeat();
     return data.session;
   },
 
@@ -28,6 +29,32 @@ window.Auth = {
     if (profile.active_from && new Date(profile.active_from) > now) return false;
     if (profile.active_until && new Date(profile.active_until) < now) return false;
     return true;
+  },
+
+  _startHeartbeat() {
+    this._heartbeat();
+    if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
+    this._heartbeatTimer = setInterval(() => this._heartbeat(), 2 * 60 * 1000);
+  },
+
+  async _heartbeat() {
+    if (!this.profile) return;
+    await sb.from("presence").upsert({ user_id: this.profile.id, last_seen_at: new Date().toISOString() });
+  },
+
+  // Skriver én rad til aktivitetsloggen (kun synlig for admin). Feiler stille -
+  // skal aldri stoppe selve handlingen brukeren egentlig utførte.
+  async logActivity(action, details) {
+    if (!this.profile) return;
+    try {
+      await sb.from("activity_log").insert({
+        event_id: this.event ? this.event.id : null,
+        user_id: this.profile.id,
+        user_name: this.profile.full_name,
+        action,
+        details: details || null,
+      });
+    } catch (e) { console.error("Kunne ikke logge aktivitet:", e); }
   },
 
   async loadProfile() {

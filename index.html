@@ -63,6 +63,7 @@
         document.getElementById("login-error").textContent = Lang.t("account_deactivated");
         return;
       }
+      Auth.logActivity("Logget inn");
       window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
     }
 

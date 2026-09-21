@@ -13,8 +13,8 @@
     <div class="clock" id="clock">--:--:--</div>
     <div class="topbar-spacer"></div>
     <div class="lang-theme-toggle">
-      <button class="ghost" onclick="Lang.set('no'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers();">NO</button>
-      <button class="ghost" onclick="Lang.set('en'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers();">EN</button>
+      <button class="ghost" onclick="Lang.set('no'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers(); Admin._renderPresence(); Admin._renderActivityLog();">NO</button>
+      <button class="ghost" onclick="Lang.set('en'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers(); Admin._renderPresence(); Admin._renderActivityLog();">EN</button>
       <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
     </div>
     <div class="userinfo">
@@ -36,8 +36,19 @@
       <div class="panel-head" data-i18n="users">Brukere</div>
       <div class="panel-body">
         <div id="user-form" class="grid-2" style="align-items:end; margin-bottom:1rem"></div>
+        <button class="ghost" onclick="Admin.addUserDivider()" style="margin-bottom:.8rem" data-i18n="add_divider">Legg til skillestrek</button>
         <div id="user-list"></div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" data-i18n="online_now">Innlogget nå</div>
+      <div class="panel-body" id="presence-list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" data-i18n="activity_log">Aktivitetslogg</div>
+      <div class="panel-body" id="activity-log" style="max-height:400px; overflow-y:auto"></div>
     </div>
   </div>
 

@@ -155,5 +155,6 @@ window.Notifications = {
     }
     await this.notifyUser(sendAll ? null : recipientId, Auth.event.id, `${Lang.t("message_from")} ${Auth.profile.full_name}`, text);
     document.getElementById("history-modal").classList.add("hidden");
+    Auth.logActivity("Sendte melding", sendAll ? "til alle tilknyttet arrangementet" : "til én mottaker");
   },
 };

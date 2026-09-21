@@ -15,6 +15,9 @@ window.Admin = {
     await this.refreshUsers();
     this._renderEventForm();
     this._renderUserForm();
+    await this.loadPresence();
+    await this.loadActivityLog();
+    setInterval(() => this.loadPresence(), 30 * 1000); // oppdater "aktiv nå" jevnlig
   },
 
   async refreshEvents() {
@@ -26,7 +29,113 @@ window.Admin = {
   async refreshUsers() {
     const { data } = await sb.from("profiles").select("*").order("created_at", { ascending: false });
     this.users = data || [];
+    await this.loadUserListItems();
     this._renderUsers();
+  },
+
+  // Manuell rekkefølge/gruppering av brukerlisten (med skillestreker). Brukere som
+  // ikke har en egen rad her ennå (f.eks. opprettet før denne funksjonen fantes)
+  // legges automatisk til på slutten, slik at ingen forsvinner fra visningen.
+  async loadUserListItems() {
+    const { data } = await sb.from("user_list_items").select("*").order("sort_order");
+    let items = data || [];
+    const known = new Set(items.filter((i) => i.kind === "user").map((i) => i.profile_id));
+    const orphans = this.users.filter((u) => !known.has(u.id));
+    if (orphans.length) {
+      const maxOrder = items.reduce((m, i) => Math.max(m, i.sort_order), -1);
+      const newItems = orphans.map((u, idx) => ({ kind: "user", profile_id: u.id, sort_order: maxOrder + 1 + idx }));
+      await sb.from("user_list_items").insert(newItems);
+      const { data: refreshed } = await sb.from("user_list_items").select("*").order("sort_order");
+      items = refreshed || items;
+    }
+    this.userListItems = items;
+  },
+
+  async addUserDivider() {
+    const label = prompt("Tekst på skillestreken (f.eks. arrangement- eller avdelingsnavn):");
+    if (label === null) return;
+    const maxOrder = (this.userListItems || []).reduce((m, i) => Math.max(m, i.sort_order), -1);
+    await sb.from("user_list_items").insert({ kind: "divider", label: label.trim() || "—", sort_order: maxOrder + 1 });
+    await this.loadUserListItems();
+    this._renderUsers();
+  },
+
+  async removeUserListItem(itemId) {
+    await sb.from("user_list_items").delete().eq("id", itemId);
+    await this.loadUserListItems();
+    this._renderUsers();
+  },
+
+  async moveUserListItem(itemId, direction) {
+    const items = this.userListItems;
+    const idx = items.findIndex((i) => i.id === itemId);
+    const swapIdx = idx + direction;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= items.length) return;
+    const a = items[idx], b = items[swapIdx];
+    await sb.from("user_list_items").update({ sort_order: b.sort_order }).eq("id", a.id);
+    await sb.from("user_list_items").update({ sort_order: a.sort_order }).eq("id", b.id);
+    await this.loadUserListItems();
+    this._renderUsers();
+  },
+
+  // ------------------------------------------------------------------------
+  // Tilstedeværelse ("aktiv nå") og aktivitetslogg
+  // ------------------------------------------------------------------------
+  async loadPresence() {
+    const { data } = await sb.from("presence").select("*");
+    this.presence = data || [];
+    this._renderPresence();
+  },
+
+  async loadActivityLog() {
+    const { data } = await sb.from("activity_log").select("*").order("created_at", { ascending: false }).limit(200);
+    this.activityLog = data || [];
+    this._renderActivityLog();
+  },
+
+  _renderPresence() {
+    const el = document.getElementById("presence-list");
+    if (!el) return;
+    const now = Date.now();
+    const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+    const rows = this.users.map((u) => {
+      const p = (this.presence || []).find((x) => x.user_id === u.id);
+      const lastSeen = p ? new Date(p.last_seen_at) : null;
+      const online = lastSeen && (now - lastSeen.getTime()) < ONLINE_WINDOW_MS;
+      return { u, lastSeen, online };
+    }).sort((a, b) => (b.lastSeen?.getTime() || 0) - (a.lastSeen?.getTime() || 0));
+    el.innerHTML = `
+      <table class="data-table"><thead><tr>
+        <th></th><th>${Lang.t("username")}</th><th>${Lang.t("full_name")}</th><th>${Lang.t("role")}</th><th>${Lang.t("last_seen")}</th>
+      </tr></thead>
+      <tbody>${rows.map(({ u, lastSeen, online }) => `
+        <tr>
+          <td>${online ? `<span style="color:var(--success)">●</span> ${Lang.t("online_now_badge")}` : ""}</td>
+          <td class="mono">${escapeHtml(u.username)}</td>
+          <td>${escapeHtml(u.full_name)}</td>
+          <td>${Lang.t("role_" + u.role)}</td>
+          <td class="small">${lastSeen ? lastSeen.toLocaleString("no-NO") : "–"}</td>
+        </tr>`).join("")}</tbody></table>
+    `;
+  },
+
+  _renderActivityLog() {
+    const el = document.getElementById("activity-log");
+    if (!el) return;
+    const eventName = (id) => this.events.find((e) => e.id === id)?.name || "";
+    el.innerHTML = `
+      <table class="data-table"><thead><tr>
+        <th>${Lang.t("timestamp")}</th><th>${Lang.t("username")}</th><th>${Lang.t("action")}</th><th>${Lang.t("details")}</th><th>${Lang.t("assigned_event")}</th>
+      </tr></thead>
+      <tbody>${(this.activityLog || []).map((a) => `
+        <tr>
+          <td class="small mono">${new Date(a.created_at).toLocaleString("no-NO")}</td>
+          <td class="small">${escapeHtml(a.user_name)}</td>
+          <td class="small">${escapeHtml(a.action)}</td>
+          <td class="small">${escapeHtml(a.details || "–")}</td>
+          <td class="small">${escapeHtml(a.event_id ? eventName(a.event_id) : "–")}</td>
+        </tr>`).join("") || `<tr><td colspan="5" class="small">–</td></tr>`}</tbody></table>
+    `;
   },
 
   _renderEventForm() {
@@ -62,6 +171,7 @@ window.Admin = {
     await this.refreshEvents();
     this._renderUserForm();
     this.toast("Arrangement opprettet");
+    Auth.logActivity("Opprettet arrangement", name);
   },
 
   _renderEvents() {
@@ -86,6 +196,7 @@ window.Admin = {
     await sb.from("events").delete().eq("id", eventId);
     await this.refreshEvents();
     this.toast("Arrangement arkivert");
+    Auth.logActivity("Arkiverte arrangement", eventName);
   },
 
   _renderUserForm() {
@@ -131,6 +242,7 @@ window.Admin = {
       if (!resp.ok) { errEl.textContent = result.error || "Feil ved oppretting"; return; }
       await this.refreshUsers();
       this.toast("Bruker opprettet");
+      Auth.logActivity("Opprettet bruker", `${username} (${Lang.t("role_" + role)})`);
     } catch (e) {
       errEl.textContent = "Kunne ikke nå funksjonen (sjekk at admin-create-user er deployet med CORS-støtte): " + e;
     }
@@ -156,6 +268,7 @@ window.Admin = {
 
   async deleteUser(userId) {
     if (!confirm(Lang.t("confirm_delete_user"))) return;
+    const target = this.users.find((u) => u.id === userId);
     try {
       const { data: { session } } = await sb.auth.getSession();
       const resp = await fetch(`${window.SUPABASE_URL}/functions/v1/admin-delete-user`, {
@@ -167,6 +280,7 @@ window.Admin = {
       if (!resp.ok) { alert("Feil: " + (result.error || "ukjent feil")); return; }
       await this.refreshUsers();
       this.toast("Bruker slettet");
+      Auth.logActivity("Slettet bruker", target ? target.username : userId);
     } catch (e) {
       alert("Kunne ikke nå funksjonen: " + e);
     }
@@ -194,13 +308,33 @@ window.Admin = {
   },
 
   _renderUsers() {
+    const canDelete = (u) => u.id !== Auth.profile.id;
     document.getElementById("user-list").innerHTML = `
       <table class="data-table"><thead><tr>
-        <th>${Lang.t("username")}</th><th>${Lang.t("full_name")}</th><th>${Lang.t("role")}</th>
+        <th></th><th>${Lang.t("username")}</th><th>${Lang.t("full_name")}</th><th>${Lang.t("role")}</th>
         <th>${Lang.t("assigned_event")}</th><th>${Lang.t("active_from")}</th><th>${Lang.t("active_until")}</th><th></th>
       </tr></thead>
-      <tbody>${this.users.map((u) => `
+      <tbody>${(this.userListItems || []).map((item, idx) => {
+        const moveButtons = `
+          <button class="ghost" style="padding:.1rem .4rem" onclick="Admin.moveUserListItem('${item.id}',-1)" ${idx === 0 ? "disabled" : ""}>▲</button>
+          <button class="ghost" style="padding:.1rem .4rem" onclick="Admin.moveUserListItem('${item.id}',1)" ${idx === this.userListItems.length - 1 ? "disabled" : ""}>▼</button>`;
+
+        if (item.kind === "divider") {
+          return `<tr><td colspan="8" style="padding-top:1rem">
+            <div style="display:flex;align-items:center;gap:.6rem">
+              ${moveButtons}
+              <strong style="white-space:nowrap">${escapeHtml(item.label)}</strong>
+              <div style="flex:1;border-top:1px solid var(--border)"></div>
+              <button class="ghost" onclick="Admin.removeUserListItem('${item.id}')">${Lang.t("remove")}</button>
+            </div>
+          </td></tr>`;
+        }
+
+        const u = this.users.find((x) => x.id === item.profile_id);
+        if (!u) return ""; // brukeren ble slettet - raden fjernes automatisk via kaskade neste innlasting
+        return `
         <tr>
+          <td style="white-space:nowrap">${moveButtons}</td>
           <td class="mono">${escapeHtml(u.username)}</td>
           <td>${escapeHtml(u.full_name)}</td>
           <td>${Lang.t("role_" + u.role)}</td>
@@ -214,9 +348,10 @@ window.Admin = {
           <td style="white-space:nowrap">
             <button class="ghost" onclick="Admin.saveUserRow('${u.id}')">${Lang.t("save_row")}</button>
             <button class="ghost" onclick="Admin.resetPassword('${u.id}')">${Lang.t("reset_password")}</button>
-            <button class="danger" onclick="Admin.deleteUser('${u.id}')">${Lang.t("delete_user")}</button>
+            ${canDelete(u) ? `<button class="danger" onclick="Admin.deleteUser('${u.id}')">${Lang.t("delete_user")}</button>` : ""}
           </td>
-        </tr>`).join("")}</tbody></table>
+        </tr>`;
+      }).join("")}</tbody></table>
       <p class="small" style="margin-top:.5rem">${Lang.t("no_limit")}: la feltet stå tomt.</p>
     `;
   },

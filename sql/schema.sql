@@ -361,6 +361,53 @@ create policy "vedlegg-storage: last opp eget arrangement"
   );
 
 -- ----------------------------------------------------------------------------
+-- TILSTEDEVÆRELSE ("aktiv nå") og AKTIVITETSLOGG (kun synlig for admin)
+-- ----------------------------------------------------------------------------
+create table public.presence (
+  user_id      uuid primary key references public.profiles(id) on delete cascade,
+  last_seen_at timestamptz not null default now()
+);
+alter table public.presence enable row level security;
+
+create policy "presence: admin ser alt, bruker ser egen" on public.presence
+  for select using (public.current_role_name() = 'admin' or user_id = auth.uid());
+create policy "presence: bruker oppretter egen" on public.presence
+  for insert with check (user_id = auth.uid());
+create policy "presence: bruker oppdaterer egen" on public.presence
+  for update using (user_id = auth.uid());
+
+create table public.activity_log (
+  id         uuid primary key default gen_random_uuid(),
+  event_id   uuid references public.events(id) on delete set null,
+  user_id    uuid references public.profiles(id) on delete set null,
+  user_name  text not null,
+  action     text not null,
+  details    text,
+  created_at timestamptz not null default now()
+);
+alter table public.activity_log enable row level security;
+
+create policy "activity_log: kun admin ser" on public.activity_log
+  for select using (public.current_role_name() = 'admin');
+create policy "activity_log: bruker logger egen aktivitet" on public.activity_log
+  for insert with check (user_id = auth.uid());
+
+-- ----------------------------------------------------------------------------
+-- Manuell rekkefølge/gruppering av brukerlisten i adminpanelet (skillestreker)
+-- ----------------------------------------------------------------------------
+create table public.user_list_items (
+  id         uuid primary key default gen_random_uuid(),
+  kind       text not null check (kind in ('user','divider')),
+  profile_id uuid references public.profiles(id) on delete cascade,
+  label      text,
+  sort_order integer not null default 0
+);
+alter table public.user_list_items enable row level security;
+
+create policy "user_list_items: kun admin" on public.user_list_items
+  for all using (public.current_role_name() = 'admin');
+
+-- ----------------------------------------------------------------------------
 -- Ferdig! Neste steg (se README.md):
 -- 1. Opprett Storage-bucket "attachments" manuelt i Dashboard hvis den ikke ble laget over.
 -- 2. Deploy Edge Functions (admin-create-user, admin-reset-password).

@@ -233,6 +233,7 @@ window.Log = {
     document.getElementById("entry-form").reset?.();
     this._renderForm();
     await this.refresh();
+    Auth.logActivity("Ny loggføring", `${data.display_id} – ${this.CATEGORY_LABELS[data.category] || data.category}`);
   },
 
   async uploadAttachments(entryId, fileList) {
@@ -271,9 +272,11 @@ window.Log = {
 
   async deleteEntry(entryId) {
     if (!confirm(Lang.t("confirm_delete_entry"))) return;
+    const entry = this.entries.find((e) => e.id === entryId);
     const { error } = await sb.from("log_entries").delete().eq("id", entryId);
     if (error) { alert("Feil: " + error.message); return; }
     await this.refresh();
+    Auth.logActivity("Slettet loggføring", entry ? entry.display_id : entryId);
   },
 
   canEdit(entry) {

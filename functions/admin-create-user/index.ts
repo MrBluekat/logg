@@ -85,6 +85,11 @@ Deno.serve(async (req) => {
       return json({ error: profileErr.message }, 400);
     }
 
+    // Legg brukeren til i adminpanelets rekkefølge-/gruppe-liste (skillestreker)
+    const { data: maxRow } = await admin.from("user_list_items").select("sort_order").order("sort_order", { ascending: false }).limit(1);
+    const nextOrder = maxRow && maxRow.length ? maxRow[0].sort_order + 1 : 0;
+    await admin.from("user_list_items").insert({ kind: "user", profile_id: created.user.id, sort_order: nextOrder });
+
     return json({ ok: true, user_id: created.user.id });
   } catch (e) {
     return json({ error: String(e) }, 500);
