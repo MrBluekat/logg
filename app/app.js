@@ -94,6 +94,7 @@ function wireUpEvents() {
       return;
     }
     await loadProfileAndEnter();
+    logActivity("Logget inn");
   });
 
   document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -149,7 +150,7 @@ const INSTALL_STEPS = {
     "Bekreft ved å trykke «Legg til» / «Installer»",
   ],
   iphone: [
-    "Trykk på Del-ikonet (firkant med pil opp) nederst på skjermen",
+    "Trykk på Del-ikonet (firkant med pil opp) øverst i adresselinjen",
     "Bla ned og velg «Legg til på Hjem-skjerm»",
     "Trykk «Legg til» øverst til høyre",
   ],
@@ -164,6 +165,7 @@ function showInstallGuide(platform) {
 
 async function logout() {
   unsubscribeRealtime();
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
   profile = null;
   currentEvent = null;
   await db.auth.signOut();
@@ -232,6 +234,36 @@ async function enterApp() {
   await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications(), loadLocations()]);
   subscribeRealtime();
   maybeShowPushBanner();
+  startHeartbeat();
+}
+
+// ---------------------------------------------------------------------------
+// Tilstedeværelse ("aktiv nå" i adminpanelet) og aktivitetslogg
+// ---------------------------------------------------------------------------
+let heartbeatTimer = null;
+
+function startHeartbeat() {
+  heartbeat();
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = setInterval(heartbeat, 2 * 60 * 1000);
+}
+
+async function heartbeat() {
+  if (!profile) return;
+  await db.from("presence").upsert({ user_id: profile.id, last_seen_at: new Date().toISOString() });
+}
+
+async function logActivity(action, details) {
+  if (!profile) return;
+  try {
+    await db.from("activity_log").insert({
+      event_id: currentEvent ? currentEvent.id : null,
+      user_id: profile.id,
+      user_name: profile.full_name,
+      action,
+      details: details || null,
+    });
+  } catch (err) { console.error("Kunne ikke logge aktivitet:", err); }
 }
 
 function switchTab(tab) {
@@ -488,6 +520,7 @@ async function saveNewEntry(e) {
       ? `Loggføring lagret, men ${uploadFailures} fil(er) kunne ikke lastes opp`
       : "Loggføring lagret");
     loadEntries();
+    logActivity("Ny loggføring", `${created.display_id} – ${CATEGORY_LABELS[created.category] || created.category}`);
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke lagre loggføringen. Prøv igjen.");
