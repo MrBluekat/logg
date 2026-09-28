@@ -112,7 +112,7 @@ create table public.log_entries (
   display_id       text not null,                -- "H-001"
   event_id         uuid not null references public.events(id) on delete cascade,
   entry_kind       text not null check (entry_kind in ('info','hendelse')),
-  category         text not null check (category in ('Loggforing','Utvisning','Medisinsk hendelse','Hendelse','Prioritert hendelse','Scene','Vaer','Publikumstall')),
+  category         text not null check (category in ('Loggforing','Utvisning','Medisinsk hendelse','Hendelse','Prioritert hendelse','Scene','Vaer','Publikumstall','Ping')),
   location         text,
   reporter_source  text,                          -- Vekter / Frivillig / Politi / Annet / fritekst
   description      text not null,
@@ -120,6 +120,9 @@ create table public.log_entries (
   notified         text[] not null default '{}',  -- Politi, AMK, Brannvesenet, Sikkerhetsleder, Krisegruppen
   beredskapsniva   text check (beredskapsniva in ('gronn','gul','rod')),        -- valgfritt, kun 1 av gangen
   scene_farge      text check (scene_farge in ('gronn','gul','oransje','rod')), -- valgfritt, kun 1 av gangen
+  latitude         double precision,  -- valgfri GPS-posisjon (vanlig loggføring eller ping)
+  longitude        double precision,
+  gps_accuracy_m   double precision,  -- oppnådd nøyaktighet i meter da posisjonen ble hentet
   status           text not null default 'avsluttet' check (status in ('pagaende','avsluttet')),
   created_by       uuid references public.profiles(id) on delete set null,
   created_by_name  text not null,
@@ -405,6 +408,28 @@ create table public.user_list_items (
 alter table public.user_list_items enable row level security;
 
 create policy "user_list_items: kun admin" on public.user_list_items
+  for all using (public.current_role_name() = 'admin');
+
+-- ----------------------------------------------------------------------------
+-- Egendefinert kart per arrangement (f.eks. eget venue-kart med grid) - brukes som
+-- grunnlag for GPS-pinger/posisjoner i stedet for Google Maps når koordinaten faller
+-- innenfor kartets dekningsområde. Kalibreres med to hjørner (øverst-venstre og
+-- nederst-høyre) - kartet forutsettes å være nogenlunde nord-opp (ikke rotert).
+-- ----------------------------------------------------------------------------
+create table public.event_maps (
+  event_id         uuid primary key references public.events(id) on delete cascade,
+  image_path       text not null,       -- path i Storage-bucketen "attachments"
+  top_left_lat     double precision not null,
+  top_left_lng     double precision not null,
+  bottom_right_lat double precision not null,
+  bottom_right_lng double precision not null,
+  created_at       timestamptz not null default now()
+);
+alter table public.event_maps enable row level security;
+
+create policy "event_maps: se eget arrangement" on public.event_maps
+  for select using (public.current_role_name() = 'admin' or event_id = public.current_event_id());
+create policy "event_maps: kun admin administrerer" on public.event_maps
   for all using (public.current_role_name() = 'admin');
 
 -- ----------------------------------------------------------------------------

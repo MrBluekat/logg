@@ -13,8 +13,8 @@
     <div class="clock" id="clock">--:--:--</div>
     <div class="topbar-spacer"></div>
     <div class="lang-theme-toggle">
-      <button class="ghost" onclick="Lang.set('no'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers(); Admin._renderPresence(); Admin._renderActivityLog();">NO</button>
-      <button class="ghost" onclick="Lang.set('en'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers(); Admin._renderPresence(); Admin._renderActivityLog();">EN</button>
+      <button class="ghost" onclick="Lang.set('no'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers(); Admin._renderPresence(); Admin._renderActivityLog(); Admin._renderMapPanel();">NO</button>
+      <button class="ghost" onclick="Lang.set('en'); Lang.apply(); Admin._renderEventForm(); Admin._renderUserForm(); Admin._renderEvents(); Admin._renderUsers(); Admin._renderPresence(); Admin._renderActivityLog(); Admin._renderMapPanel();">EN</button>
       <button class="ghost" onclick="Theme.toggle()">☀/☾</button>
     </div>
     <div class="userinfo">
@@ -30,6 +30,11 @@
         <div id="event-form" class="grid-2" style="align-items:end; margin-bottom:1rem"></div>
         <div id="event-list"></div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" data-i18n="custom_map">Egendefinert kart</div>
+      <div class="panel-body" id="map-panel"></div>
     </div>
 
     <div class="panel">
@@ -63,6 +68,7 @@
   <script src="js/clock.js"></script>
   <script>window.Log = window.Log || { CATEGORIES: [], CATEGORY_LABELS: {} };</script>
   <script src="js/pdfExport.js"></script>
+  <script src="js/gps.js"></script>
   <script src="js/admin.js"></script>
   <script>
     (async () => {

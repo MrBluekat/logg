@@ -33,6 +33,12 @@ window.Guide = {
           <h3>"Send melding"</h3>
           <p class="small">Kun admin og logger kan sende meldinger (ikke observatør). Dette er ren envis kommunikasjon – mottakeren kan ikke svare i appen. Du kan enten velge én bestemt mottaker, eller huke av "Send til alle tilknyttet arrangementet" for å nå alle på én gang.</p>
 
+          <h3>📍 Posisjonsping og GPS</h3>
+          <p class="small"><strong>Posisjonsping</strong> (📍-knappen øverst i PWA-appen på mobil) er en hurtigknapp for å dele nøyaktig hvor du befinner deg akkurat nå, med et valgfritt kort kontekstfelt (f.eks. «Bråk ved inngang A»). Bruk denne når noen i felt (f.eks. en vekter over samband) sier fra om noe, og du raskt vil vise KO nøyaktig posisjon.</p>
+          <p class="small">Du kan også legge til GPS-posisjon på en <strong>vanlig loggføring</strong> – trykk "📍 Legg til GPS-posisjon" rett under lokasjonsfeltet når du fyller ut skjemaet.</p>
+          <p class="small">Appen prøver å oppnå en nøyaktighet på 5 meter eller bedre i inntil 15 sekunder, men gir aldri opp – den sender med beste oppnådde nøyaktighet uansett, og viser alltid tallet tydelig (grønt ved 5 m eller bedre, gult/oransje ved dårligere) slik at mottakeren vet hvor mye å stole på posisjonen. Nøyaktigheten er ofte dårligere innendørs, i telt, eller mellom høye scener/rigger.</p>
+          <p class="small">Loggføringer/pinger med posisjon får en "📍 Åpne kart"-knapp. Har arrangementet et <strong>eget, opplastet kart</strong> (satt opp av admin under "Egendefinert kart" i adminpanelet) og punktet ligger innenfor dette kartets område, vises punktet på deres eget kart. Ellers åpnes Google Maps automatisk i stedet.</p>
+
         </div>
       </div>`;
     box.classList.remove("hidden");

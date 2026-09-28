@@ -124,6 +124,7 @@
   <script src="js/clock.js"></script>
   <script src="js/timers.js"></script>
   <script src="js/dashboard.js"></script>
+  <script src="js/gps.js"></script>
   <script src="js/log.js"></script>
   <script src="js/pdfExport.js"></script>
   <script src="js/contacts.js"></script>
@@ -197,6 +198,7 @@
       await Tasks.init("task-list");
       await Notifications.init();
       await Log.init();
+      await Gps.loadEventMap();
       if (Auth.canWrite() && localStorage.getItem("al_entry_form_collapsed") === "1") {
         document.getElementById("entry-form").classList.add("hidden");
         document.getElementById("entry-form-toggle-icon").textContent = "▼";

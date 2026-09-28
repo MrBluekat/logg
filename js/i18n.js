@@ -130,6 +130,13 @@ window.I18N = {
     action: "Handling",
     details: "Detaljer",
     add_divider: "Legg til skillestrek",
+    custom_map: "Egendefinert kart",
+    map_current: "Gjeldende kart",
+    map_none: "Ingen kart lastet opp ennå for dette arrangementet - Google Maps brukes automatisk for alle GPS-posisjoner.",
+    map_hint: "Last opp et bilde av deres eget kart, og oppgi GPS-koordinatene for øverste venstre og nederste høyre hjørne av bildet (kartet bør være nogenlunde nord-opp, ikke rotert).",
+    map_image: "Kartbilde",
+    map_top_left: "Øverst venstre hjørne",
+    map_bottom_right: "Nederst høyre hjørne",
   },
   en: {
     login_title: "Log in",
@@ -262,6 +269,13 @@ window.I18N = {
     action: "Action",
     details: "Details",
     add_divider: "Add divider",
+    custom_map: "Custom map",
+    map_current: "Current map",
+    map_none: "No map uploaded yet for this event - Google Maps is used automatically for all GPS positions.",
+    map_hint: "Upload an image of your own map, and provide the GPS coordinates of the top-left and bottom-right corners of the image (the map should be roughly north-up, not rotated).",
+    map_image: "Map image",
+    map_top_left: "Top-left corner",
+    map_bottom_right: "Bottom-right corner",
   },
 };
 

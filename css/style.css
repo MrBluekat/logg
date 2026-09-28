@@ -405,3 +405,6 @@ table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 0.7
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.gps-accuracy-good { color: var(--success); }
+.gps-accuracy-bad { color: var(--warn); }

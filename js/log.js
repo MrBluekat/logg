@@ -9,6 +9,7 @@ window.Log = {
     "Scene": "Scene",
     "Vaer": "Vær",
     "Publikumstall": "Publikumstall",
+    "Ping": "📍 Ping",
   },
   NOTIFY_OPTIONS: ["Politi", "AMK", "Brannvesenet", "Sikkerhetsleder", "Krisegruppen"],
   BEREDSKAP_LEVELS: [
@@ -163,6 +164,8 @@ window.Log = {
             <option value="__custom">${Lang.t("location_custom")}</option>
           </select>
           <input id="in-location-custom" class="hidden" placeholder="${Lang.t("location_custom")}" style="margin-top:.4rem">
+          <button type="button" class="ghost" id="capture-gps-btn" style="margin-top:.4rem" onclick="Log.captureGps()">📍 Legg til GPS-posisjon</button>
+          <div id="gps-status" class="small" style="margin-top:.3rem"></div>
         </div>
         <div class="field"><label>${Lang.t("reporter_source")}</label><input id="in-reporter" placeholder="Vekter / Frivillig / Politi / Annet"></div>
       </div>
@@ -220,6 +223,9 @@ window.Log = {
       notified,
       beredskapsniva,
       scene_farge,
+      latitude: this.capturedGps ? this.capturedGps.lat : null,
+      longitude: this.capturedGps ? this.capturedGps.lng : null,
+      gps_accuracy_m: this.capturedGps ? this.capturedGps.accuracy : null,
       status: kind === "hendelse" ? "pagaende" : "avsluttet",
       created_by: Auth.profile.id,
       created_by_name: Auth.profile.full_name,
@@ -231,9 +237,30 @@ window.Log = {
     if (files.length) await this.uploadAttachments(data.id, files);
 
     document.getElementById("entry-form").reset?.();
+    this.capturedGps = null;
     this._renderForm();
     await this.refresh();
     Auth.logActivity("Ny loggføring", `${data.display_id} – ${this.CATEGORY_LABELS[data.category] || data.category}`);
+  },
+
+  capturedGps: null,
+
+  async captureGps() {
+    const statusEl = document.getElementById("gps-status");
+    const btn = document.getElementById("capture-gps-btn");
+    btn.disabled = true;
+    statusEl.textContent = "Henter posisjon …";
+    try {
+      const pos = await Gps.getAccuratePosition((best) => {
+        statusEl.innerHTML = `Henter posisjon … (foreløpig ${Gps.accuracyLabel(best.coords.accuracy)})`;
+      });
+      this.capturedGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+      statusEl.innerHTML = `📍 Posisjon lagt til (nøyaktighet ${Gps.accuracyLabel(pos.coords.accuracy)})`;
+    } catch (err) {
+      statusEl.textContent = "Kunne ikke hente posisjon: " + err.message;
+    } finally {
+      btn.disabled = false;
+    }
   },
 
   async uploadAttachments(entryId, fileList) {
@@ -369,6 +396,7 @@ window.Log = {
           ${e.notified?.length ? `<span>${Lang.t("notified")}: ${e.notified.join(", ")}</span>` : ""}
           <span>${escapeHtml(e.created_by_name)}</span>
         </div>
+        ${e.latitude != null ? `<div class="meta"><button class="ghost" style="padding:.15rem .5rem" onclick="Gps.openViewer(${e.latitude},${e.longitude},${e.gps_accuracy_m || "null"})">📍 Åpne kart (±${Math.round(e.gps_accuracy_m || 0)} m)</button></div>` : ""}
         ${e.attachments.length ? `<div class="attachments">${e.attachments.map((a) => `<a id="att-${a.id}" href="#" target="_blank">📎 ${escapeHtml(a.file_name)}</a>`).join("")}</div>` : ""}
         ${e.entry_kind === "hendelse" ? `
           <div class="comments">

@@ -15,6 +15,7 @@ window.Admin = {
     await this.refreshUsers();
     this._renderEventForm();
     this._renderUserForm();
+    this._renderMapPanel();
     await this.loadPresence();
     await this.loadActivityLog();
     setInterval(() => this.loadPresence(), 30 * 1000); // oppdater "aktiv nå" jevnlig
@@ -136,6 +137,119 @@ window.Admin = {
           <td class="small">${escapeHtml(a.event_id ? eventName(a.event_id) : "–")}</td>
         </tr>`).join("") || `<tr><td colspan="5" class="small">–</td></tr>`}</tbody></table>
     `;
+  },
+
+  // ------------------------------------------------------------------------
+  // Egendefinert kart (kalibrert med to hjørner) - brukes som grunnlag for
+  // GPS-posisjoner/pinger i stedet for Google Maps når mulig.
+  // ------------------------------------------------------------------------
+  _mapSelectedEventId: null,
+
+  async _renderMapPanel() {
+    const el = document.getElementById("map-panel");
+    if (!el) return;
+    if (!this._mapSelectedEventId && this.events.length) this._mapSelectedEventId = this.events[0].id;
+
+    el.innerHTML = `
+      <div class="field"><label>${Lang.t("event_name")}</label>
+        <select id="map-event-select" onchange="Admin._onMapEventChange(this.value)">
+          ${this.events.map((ev) => `<option value="${ev.id}" ${ev.id === this._mapSelectedEventId ? "selected" : ""}>${escapeHtml(ev.name)}</option>`).join("")}
+        </select>
+      </div>
+      <div id="map-panel-body">Laster …</div>
+    `;
+    if (this._mapSelectedEventId) await this._loadMapForSelectedEvent();
+  },
+
+  async _onMapEventChange(eventId) {
+    this._mapSelectedEventId = eventId;
+    await this._loadMapForSelectedEvent();
+  },
+
+  async _loadMapForSelectedEvent() {
+    const body = document.getElementById("map-panel-body");
+    const { data } = await sb.from("event_maps").select("*").eq("event_id", this._mapSelectedEventId);
+    const existing = (data && data[0]) || null;
+    let previewUrl = "";
+    if (existing) {
+      const { data: signed } = await sb.storage.from("attachments").createSignedUrl(existing.image_path, 3600);
+      previewUrl = signed?.signedUrl || "";
+    }
+    body.innerHTML = `
+      ${existing ? `
+        <div style="margin-bottom:1rem">
+          <img src="${previewUrl}" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid var(--border)">
+          <p class="small" style="margin-top:.4rem">${Lang.t("map_current")}</p>
+          <button class="danger" onclick="Admin.deleteMap()">${Lang.t("remove")}</button>
+        </div>
+      ` : `<p class="small" style="margin-bottom:1rem">${Lang.t("map_none")}</p>`}
+      <p class="small" style="margin-bottom:.6rem">${Lang.t("map_hint")}</p>
+      <div class="grid-2">
+        <div class="field"><label>${Lang.t("map_image")}</label><input type="file" id="map-image-input" accept="image/*"></div>
+        <div></div>
+        <div class="field"><label>${Lang.t("map_top_left")}</label>
+          <input id="map-tl-lat" placeholder="Breddegrad (lat)" value="${existing ? existing.top_left_lat : ""}">
+          <input id="map-tl-lng" placeholder="Lengdegrad (lng)" style="margin-top:.3rem" value="${existing ? existing.top_left_lng : ""}">
+        </div>
+        <div class="field"><label>${Lang.t("map_bottom_right")}</label>
+          <input id="map-br-lat" placeholder="Breddegrad (lat)" value="${existing ? existing.bottom_right_lat : ""}">
+          <input id="map-br-lng" placeholder="Lengdegrad (lng)" style="margin-top:.3rem" value="${existing ? existing.bottom_right_lng : ""}">
+        </div>
+      </div>
+      <button class="primary" onclick="Admin.saveMap()">${Lang.t("save")}</button>
+      <div id="map-error" class="error-text"></div>
+    `;
+  },
+
+  async saveMap() {
+    const eventId = this._mapSelectedEventId;
+    const fileInput = document.getElementById("map-image-input");
+    const tlLat = parseFloat(document.getElementById("map-tl-lat").value);
+    const tlLng = parseFloat(document.getElementById("map-tl-lng").value);
+    const brLat = parseFloat(document.getElementById("map-br-lat").value);
+    const brLng = parseFloat(document.getElementById("map-br-lng").value);
+    const errEl = document.getElementById("map-error");
+    errEl.textContent = "";
+
+    if ([tlLat, tlLng, brLat, brLng].some((n) => Number.isNaN(n))) {
+      errEl.textContent = "Alle fire koordinatene må fylles ut.";
+      return;
+    }
+
+    const { data: existingRows } = await sb.from("event_maps").select("*").eq("event_id", eventId);
+    const existing = (existingRows && existingRows[0]) || null;
+    let imagePath = existing ? existing.image_path : null;
+
+    if (fileInput.files.length) {
+      const file = fileInput.files[0];
+      imagePath = `${eventId}/map/${Date.now()}_${file.name}`;
+      const { error: upErr } = await sb.storage.from("attachments").upload(imagePath, file, { contentType: file.type, upsert: true });
+      if (upErr) { errEl.textContent = "Kunne ikke laste opp bilde: " + upErr.message; return; }
+    }
+    if (!imagePath) {
+      errEl.textContent = "Velg et kartbilde.";
+      return;
+    }
+
+    const payload = {
+      event_id: eventId, image_path: imagePath,
+      top_left_lat: tlLat, top_left_lng: tlLng,
+      bottom_right_lat: brLat, bottom_right_lng: brLng,
+    };
+    const { error } = existing
+      ? await sb.from("event_maps").update(payload).eq("event_id", eventId)
+      : await sb.from("event_maps").insert(payload);
+    if (error) { errEl.textContent = "Feil: " + error.message; return; }
+
+    await this._loadMapForSelectedEvent();
+    this.toast("Kart lagret");
+  },
+
+  async deleteMap() {
+    if (!confirm("Fjerne det egendefinerte kartet for dette arrangementet?")) return;
+    await sb.from("event_maps").delete().eq("event_id", this._mapSelectedEventId);
+    await this._loadMapForSelectedEvent();
+    this.toast("Kart fjernet");
   },
 
   _renderEventForm() {
