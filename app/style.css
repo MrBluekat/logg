@@ -762,3 +762,26 @@ nav.tab-bar button.active {
 .notif-item .notif-title { font-weight: 700; font-size: 14px; }
 .notif-item .notif-body { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 .notif-item .notif-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.map-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.map-wrap img { display: block; width: 100%; height: auto; }
+.map-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  margin-top: -18px;
+  background: #e5595e;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.gps-accuracy-good { color: var(--success, #3dbe7b); }
+.gps-accuracy-bad { color: #e8a23d; }

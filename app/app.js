@@ -19,6 +19,7 @@ const CATEGORY_LABELS = {
   Scene: "Scene",
   Vaer: "Vær",
   Publikumstall: "Publikumstall",
+  Ping: "📍 Ping",
 };
 
 const BEREDSKAP_LABELS = { gronn: "Grønt beredskapsnivå", gul: "Gult beredskapsnivå", rod: "Rødt beredskapsnivå" };
@@ -125,6 +126,15 @@ function wireUpEvents() {
   el("compose-sheet").addEventListener("click", (e) => { if (e.target.id === "compose-sheet") { el("compose-sheet").classList.add("hidden"); el("compose-form").reset(); } });
   el("compose-form").addEventListener("submit", sendComposeMessage);
 
+  el("capture-gps-btn").addEventListener("click", captureGpsForEntry);
+  el("cancel-ping").addEventListener("click", () => closePingSheet());
+  el("ping-sheet").addEventListener("click", (e) => { if (e.target.id === "ping-sheet") closePingSheet(); });
+  el("ping-form").addEventListener("submit", sendPing);
+  el("close-map-sheet").addEventListener("click", () => el("map-sheet").classList.add("hidden"));
+  el("map-sheet").addEventListener("click", (e) => { if (e.target.id === "map-sheet") el("map-sheet").classList.add("hidden"); });
+  el("close-guide-sheet").addEventListener("click", () => el("guide-sheet").classList.add("hidden"));
+  el("guide-sheet").addEventListener("click", (e) => { if (e.target.id === "guide-sheet") el("guide-sheet").classList.add("hidden"); });
+
   el("cancel-new-contact").addEventListener("click", () => { el("new-contact-sheet").classList.add("hidden"); el("new-contact-form").reset(); });
   el("new-contact-sheet").addEventListener("click", (e) => { if (e.target.id === "new-contact-sheet") { el("new-contact-sheet").classList.add("hidden"); el("new-contact-form").reset(); } });
   el("new-contact-form").addEventListener("submit", saveNewContact);
@@ -230,8 +240,9 @@ async function enterApp() {
   el("fab-new").style.display = canWrite() ? "flex" : "none";
   el("switch-event-btn").classList.toggle("hidden", profile.role !== "admin");
   el("send-message-btn").classList.toggle("hidden", !canWrite());
+  el("ping-btn").classList.toggle("hidden", !canWrite());
 
-  await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications(), loadLocations()]);
+  await Promise.all([loadEntries(), loadTasks(), loadContacts(), loadEventUsers(), loadNotifications(), loadLocations(), loadEventMap()]);
   subscribeRealtime();
   maybeShowPushBanner();
   startHeartbeat();
@@ -363,6 +374,7 @@ function entryRow(row) {
       ${row.beredskapsniva ? `<span class="badge-color" style="color:${BEREDSKAP_COLORS[row.beredskapsniva]}">${BEREDSKAP_LABELS[row.beredskapsniva]}</span>` : ""}
       ${row.scene_farge ? `<span class="badge-color" style="color:${SCENE_COLORS[row.scene_farge]}">${SCENE_LABELS[row.scene_farge]}</span>` : ""}
     </div>` : ""}
+    ${row.latitude != null ? `<div class="meta-line"><button type="button" class="ghost gps-open-btn" data-lat="${row.latitude}" data-lng="${row.longitude}" data-acc="${row.gps_accuracy_m || ""}" style="padding:4px 8px; font-size:12px">📍 Åpne kart (±${Math.round(row.gps_accuracy_m || 0)} m)</button></div>` : ""}
     <div class="attachments-row" id="att-${row.id}"></div>
     ${row.entry_kind === "hendelse" ? `
       <div class="comment-list">
@@ -401,6 +413,8 @@ function entryRow(row) {
   if (commentBtn) commentBtn.addEventListener("click", () => addComment(row.id, li.querySelector(".comment-input")));
   const closeBtn = li.querySelector(".btn-close-case");
   if (closeBtn) closeBtn.addEventListener("click", () => markClosed(row.id));
+  const gpsBtn = li.querySelector(".gps-open-btn");
+  if (gpsBtn) gpsBtn.addEventListener("click", () => openMapViewer(parseFloat(gpsBtn.dataset.lat), parseFloat(gpsBtn.dataset.lng), gpsBtn.dataset.acc ? parseFloat(gpsBtn.dataset.acc) : null));
 
   return li;
 }
@@ -462,6 +476,7 @@ function closeNewSheet() {
   el("new-lokasjon-custom").classList.add("hidden");
   el("photo-preview").innerHTML = "";
   selectedFiles = [];
+  resetCapturedGps();
 }
 
 async function saveNewEntry(e) {
@@ -493,6 +508,9 @@ async function saveNewEntry(e) {
       notified,
       beredskapsniva,
       scene_farge,
+      latitude: capturedGps ? capturedGps.lat : null,
+      longitude: capturedGps ? capturedGps.lng : null,
+      gps_accuracy_m: capturedGps ? capturedGps.accuracy : null,
       status: kind === "hendelse" ? "pagaende" : "avsluttet",
       created_by: user.id,
       created_by_name: profile.full_name,
@@ -694,6 +712,177 @@ async function addLocation(name) {
 }
 
 // ---------------------------------------------------------------------------
+// GPS: presis posisjonshenting med nøyaktighetsforbedring
+// ---------------------------------------------------------------------------
+const GPS_TARGET_ACCURACY_M = 5;
+const GPS_TIMEOUT_MS = 15000;
+
+// Prøver å hente en posisjon med ≤5 m nøyaktighet i inntil 15 sekunder (GPS blir
+// ofte mer presist jo lenger telefonen får "låse seg" på satellittene). Gir ALDRI
+// opp og nekter å sende - returnerer heller beste posisjon den rakk å finne, slik
+// at en vekter i vanskelige forhold (telt, mellom rigger osv.) fortsatt kan sende
+// pingen sin. onUpdate kalles underveis med foreløpig beste nøyaktighet.
+function getAccuratePosition(onUpdate) {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) { reject(new Error("Denne enheten støtter ikke posisjonsdeling.")); return; }
+    let best = null;
+    let done = false;
+    const finish = (pos) => {
+      if (done) return;
+      done = true;
+      navigator.geolocation.clearWatch(watchId);
+      clearTimeout(timer);
+      resolve(pos);
+    };
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!best || pos.coords.accuracy < best.coords.accuracy) best = pos;
+        if (onUpdate) onUpdate(best);
+        if (pos.coords.accuracy <= GPS_TARGET_ACCURACY_M) finish(pos);
+      },
+      () => { /* enkeltfeil ignoreres - vi venter til tidsavbruddet uansett */ },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: GPS_TIMEOUT_MS }
+    );
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      navigator.geolocation.clearWatch(watchId);
+      if (best) resolve(best);
+      else reject(new Error("Kunne ikke hente posisjon. Sjekk at stedstjenester er aktivert."));
+    }, GPS_TIMEOUT_MS);
+  });
+}
+
+function accuracyLabel(accM) {
+  const rounded = Math.round(accM);
+  const cls = accM <= GPS_TARGET_ACCURACY_M ? "gps-accuracy-good" : "gps-accuracy-bad";
+  return `<span class="${cls}">±${rounded} m</span>`;
+}
+
+// ---- GPS på en vanlig loggføring ----
+let capturedGps = null;
+
+async function captureGpsForEntry() {
+  const statusEl = el("gps-status");
+  const btn = el("capture-gps-btn");
+  btn.disabled = true;
+  statusEl.textContent = "Henter posisjon …";
+  try {
+    const pos = await getAccuratePosition((best) => {
+      statusEl.innerHTML = `Henter posisjon … (foreløpig ${accuracyLabel(best.coords.accuracy)})`;
+    });
+    capturedGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+    statusEl.innerHTML = `📍 Posisjon lagt til (nøyaktighet ${accuracyLabel(pos.coords.accuracy)})`;
+  } catch (err) {
+    statusEl.textContent = "Kunne ikke hente posisjon: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function resetCapturedGps() {
+  capturedGps = null;
+  const statusEl = el("gps-status");
+  if (statusEl) statusEl.textContent = "";
+}
+
+// ---- Hurtig posisjonsping ----
+function openPingSheet() {
+  el("ping-form").reset();
+  el("ping-status").textContent = "Henter posisjon …";
+  el("send-ping-btn").disabled = true;
+  el("ping-sheet").classList.remove("hidden");
+  el("ping-sheet")._pendingPosition = null;
+
+  getAccuratePosition((best) => {
+    el("ping-status").innerHTML = `Henter posisjon … (foreløpig ${accuracyLabel(best.coords.accuracy)})`;
+  }).then((pos) => {
+    el("ping-sheet")._pendingPosition = pos;
+    el("ping-status").innerHTML = `📍 Posisjon klar (nøyaktighet ${accuracyLabel(pos.coords.accuracy)})`;
+    el("send-ping-btn").disabled = false;
+  }).catch((err) => {
+    el("ping-status").textContent = "Kunne ikke hente posisjon: " + err.message;
+  });
+}
+
+function closePingSheet() {
+  el("ping-sheet").classList.add("hidden");
+  el("ping-form").reset();
+}
+
+async function sendPing(e) {
+  e.preventDefault();
+  const pos = el("ping-sheet")._pendingPosition;
+  if (!pos) return;
+  const context = el("ping-context").value.trim();
+  const { data: { user } } = await db.auth.getUser();
+
+  const { data: created, error } = await db.from("log_entries").insert({
+    event_id: currentEvent.id,
+    entry_kind: "info",
+    category: "Ping",
+    description: context || "Posisjonsping",
+    status: "avsluttet",
+    latitude: pos.coords.latitude,
+    longitude: pos.coords.longitude,
+    gps_accuracy_m: pos.coords.accuracy,
+    created_by: user.id,
+    created_by_name: profile.full_name,
+  }).select().single();
+
+  if (error) { showToast("Kunne ikke sende ping: " + error.message); return; }
+
+  closePingSheet();
+  showToast("Ping sendt");
+  loadEntries();
+  logActivity("Sendte posisjonsping", context || undefined);
+}
+
+// ---- Egendefinert kart (kalibrert med to hjørner) eller Google Maps ----
+let eventMap = null;
+
+async function loadEventMap() {
+  const { data } = await db.from("event_maps").select("*").eq("event_id", currentEvent.id);
+  eventMap = (data && data[0]) || null;
+}
+
+// Regner om en GPS-koordinat til pikselposisjon (i prosent) på det egendefinerte
+// kartet, forutsatt at kartet er nogenlunde nord-opp. Returnerer null hvis
+// koordinaten faller utenfor kartets kalibrerte område.
+function gpsToMapPercent(lat, lng) {
+  if (!eventMap) return null;
+  const { top_left_lat, top_left_lng, bottom_right_lat, bottom_right_lng } = eventMap;
+  const fracX = (lng - top_left_lng) / (bottom_right_lng - top_left_lng);
+  const fracY = (top_left_lat - lat) / (top_left_lat - bottom_right_lat);
+  if (fracX < 0 || fracX > 1 || fracY < 0 || fracY > 1) return null;
+  return { xPct: fracX * 100, yPct: fracY * 100 };
+}
+
+async function openMapViewer(lat, lng, accuracyM) {
+  const pos = gpsToMapPercent(lat, lng);
+  const body = el("map-sheet-body");
+  const googleUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+  if (pos) {
+    const { data: signed } = await db.storage.from("attachments").createSignedUrl(eventMap.image_path, 3600);
+    body.innerHTML = `
+      <div class="map-wrap">
+        <img src="${signed?.signedUrl || ""}" alt="Kart">
+        <div class="map-marker" style="left:${pos.xPct}%; top:${pos.yPct}%"></div>
+      </div>
+      <p class="small" style="margin-top:8px">Nøyaktighet: ${accuracyM != null ? accuracyLabel(accuracyM) : "ukjent"}</p>
+      <a href="${googleUrl}" target="_blank"><button type="button" class="btn-secondary" style="width:100%; margin-top:6px">Åpne i Google Maps i stedet</button></a>
+    `;
+  } else {
+    // Ingen kalibrert kart, eller punktet ligger utenfor det - bruk Google Maps direkte
+    window.open(googleUrl, "_blank");
+    return;
+  }
+  el("map-sheet-title").textContent = "Posisjon";
+  el("map-sheet").classList.remove("hidden");
+}
+
+// ---------------------------------------------------------------------------
 // Brukere tilknyttet arrangementet (kun disse - ikke alle brukere i systemet - kan tildeles oppgaver)
 // ---------------------------------------------------------------------------
 let eventUsers = [];
@@ -769,6 +958,10 @@ async function notifyUser(userId, eventId, title, body) {
 // ---------------------------------------------------------------------------
 // Send manuell melding til en bruker tilknyttet arrangementet (envis - mottaker kan ikke svare)
 // ---------------------------------------------------------------------------
+function openGuideSheet() {
+  el("guide-sheet").classList.remove("hidden");
+}
+
 function openComposeSheet() {
   const select = el("message-recipient-select");
   const others = eventUsers.filter((u) => u.id !== profile.id);

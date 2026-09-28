@@ -79,6 +79,8 @@
     </div>
     <div class="header-actions">
       <span class="status-dot" id="status-dot">Tilkoblet</span>
+      <button class="icon-btn hidden" id="ping-btn" title="Send posisjonsping" onclick="openPingSheet()">📍</button>
+      <button class="icon-btn" title="Brukerveiledning" onclick="openGuideSheet()">❓</button>
       <button class="icon-btn" style="position:relative" title="Varselsenter" onclick="openNotificationCenter()">🔔<span id="notif-badge" class="notif-badge hidden"></span></button>
       <button class="icon-btn" id="send-message-btn" title="Send melding" onclick="openComposeSheet()">✉️</button>
       <button class="icon-btn hidden" id="switch-event-btn" title="Bytt arrangement">🔀</button>
@@ -167,6 +169,8 @@
           <option value="__custom">Annen lokasjon (skriv inn)</option>
         </select>
         <input type="text" id="new-lokasjon-custom" class="hidden" placeholder="Skriv inn lokasjon" style="margin-top:8px" />
+        <button type="button" class="btn-secondary" id="capture-gps-btn" style="margin-top:8px; width:auto; padding:8px 12px; font-size:13px">📍 Legg til GPS-posisjon</button>
+        <div id="gps-status" class="small" style="margin-top:6px"></div>
       </div>
       <div class="field">
         <label for="new-reporter">Meldt via (valgfritt)</label>
@@ -282,6 +286,56 @@
         <button type="submit" class="btn-primary">Send</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ===================== SEND PING (sheet) ===================== -->
+<div class="sheet-backdrop hidden" id="ping-sheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>📍 Send posisjonsping</h3>
+    <form id="ping-form">
+      <div class="field">
+        <label for="ping-context">Kort kontekst (valgfritt)</label>
+        <input type="text" id="ping-context" placeholder="F.eks. «Bråk ved inngang A»" />
+      </div>
+      <div id="ping-status" class="small" style="margin-bottom:14px">Henter posisjon …</div>
+      <div class="sheet-actions">
+        <button type="button" class="btn-secondary" id="cancel-ping">Avbryt</button>
+        <button type="submit" class="btn-primary" id="send-ping-btn" disabled>Send ping</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== KARTVISNING (sheet) ===================== -->
+<div class="sheet-backdrop hidden" id="map-sheet">
+  <div class="sheet" style="max-height:88vh">
+    <div class="sheet-handle"></div>
+    <h3 id="map-sheet-title">Posisjon</h3>
+    <div id="map-sheet-body"></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn-secondary" id="close-map-sheet" style="width:100%">Lukk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== BRUKERVEILEDNING (sheet) ===================== -->
+<div class="sheet-backdrop hidden" id="guide-sheet">
+  <div class="sheet" style="max-height:88vh; overflow-y:auto">
+    <div class="sheet-handle"></div>
+    <h3>Brukerveiledning</h3>
+    <div class="small" style="line-height:1.5">
+      <p><strong>📍 Posisjonsping</strong> – trykk 📍 øverst for å raskt dele nøyaktig hvor du er, med en valgfri kort kontekst (f.eks. «Bråk ved inngang A»). Bruk denne når noen melder inn noe over samband, og du vil vise KO nøyaktig posisjon med én gang.</p>
+      <p><strong>GPS på vanlige loggføringer</strong> – trykk "📍 Legg til GPS-posisjon" i skjemaet når du registrerer en hendelse, hvis posisjonen er relevant.</p>
+      <p><strong>Nøyaktighet</strong> – appen prøver å nå 5 meter eller bedre i inntil 15 sekunder, men gir aldri opp: den sender uansett med beste oppnådde verdi, og viser nøyaktigheten tydelig (grønn = 5 m eller bedre, gul/oransje = dårligere). Kan bli dårligere innendørs eller mellom høye rigger/scener.</p>
+      <p><strong>📍 Åpne kart</strong> – på loggføringer/pinger med posisjon. Har arrangementet et eget opplastet kart (satt opp av admin), og punktet ligger innenfor det, vises det på deres eget kart. Ellers åpnes Google Maps automatisk.</p>
+      <p><strong>Push-varsler</strong> sendes automatisk til alle ved: ny "Prioritert hendelse", endret beredskapsnivå, eller endret scenefarge. Tildeling av oppgave og direktemeldinger (✉️) varsler kun mottakeren, med mindre "Send til alle" er valgt.</p>
+      <p><strong>Varselsenter (🔔)</strong> viser alle varsler du har mottatt – de slettes aldri, kun markeres som lest.</p>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn-secondary" id="close-guide-sheet" style="width:100%">Lukk</button>
+    </div>
   </div>
 </div>
 
