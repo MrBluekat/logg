@@ -58,9 +58,8 @@ Deno.serve(async (req) => {
     if (!["admin", "logger", "observator"].includes(role)) {
       return json({ error: "Ugyldig rolle" }, 400);
     }
-    if (role !== "admin" && !event_id) {
-      return json({ error: "Logger/observatør må ha et arrangement" }, 400);
-    }
+    // Logger/observatør kan opprettes uten arrangement ("ingen") - de får da
+    // beskjed om manglende tilknytning når de forsøker å logge inn (se app.html).
 
     const email = `${username.trim().toLowerCase()}@${EMAIL_DOMAIN}`;
 

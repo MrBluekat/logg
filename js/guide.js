@@ -39,6 +39,13 @@ window.Guide = {
           <p class="small">Appen prøver å oppnå en nøyaktighet på 5 meter eller bedre i inntil 15 sekunder, men gir aldri opp – den sender med beste oppnådde nøyaktighet uansett, og viser alltid tallet tydelig (grønt ved 5 m eller bedre, gult/oransje ved dårligere) slik at mottakeren vet hvor mye å stole på posisjonen. Nøyaktigheten er ofte dårligere innendørs, i telt, eller mellom høye scener/rigger.</p>
           <p class="small">Loggføringer/pinger med posisjon får en "📍 Åpne kart"-knapp. Har arrangementet et <strong>eget, opplastet kart</strong> (satt opp av admin under "Egendefinert kart" i adminpanelet) og punktet ligger innenfor dette kartets område, vises punktet på deres eget kart. Ellers åpnes Google Maps automatisk i stedet.</p>
 
+          <h3>Status-rubrikken</h3>
+          <p class="small">Øverst i høyre kolonne finner du "Status" – en sanntidsoversikt som viser <strong>siste registrerte beredskapsnivå og scenefarge</strong> med tidspunkt, uten at du trenger å scrolle ned i loggen for å finne siste oppdatering.</p>
+          <p class="small">Under dette listes alle <strong>åpne (ikke avsluttede) hendelser</strong>. Trykk på en hendelse for å utvide den – da vises full beskrivelse og alle kommentarer, og du kan legge til en ny oppdatering eller markere hendelsen som avsluttet, direkte der, uten å måtte lete den opp nede i selve loggen.</p>
+
+          <h3>Kollapsbare paneler</h3>
+          <p class="small">"Ny loggføring", "Filter og søk", "Oppgaver" og "Tid" kan alle slås sammen med ▲/▼-knappen i hjørnet av panelet, for å spare plass på skjermen. Valget huskes i nettleseren til neste gang du logger inn.</p>
+
         </div>
       </div>`;
     box.classList.remove("hidden");

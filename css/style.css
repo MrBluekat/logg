@@ -245,6 +245,55 @@ label {
 .edited-tag { font-size: 0.72rem; color: var(--text-muted); text-decoration: underline dotted; cursor: pointer; background: none; border: none; padding: 0; }
 
 /* ---------------------------------------------------------------------- */
+/* Status-rubrikk (sanntidsoversikt over beredskap/scene og åpne hendelser) */
+/* ---------------------------------------------------------------------- */
+.status-current {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+.status-current-item { display: flex; flex-direction: column; gap: 0.3rem; }
+.status-current-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.status-current-time { color: var(--text-muted); }
+.status-incidents { display: flex; flex-direction: column; gap: 0.5rem; }
+.status-incident { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.status-incident-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+}
+.status-incident-head:hover { background: var(--panel-raised); }
+.status-incident-preview {
+  flex: 1;
+  min-width: 60px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.status-incident-head .timestamp { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); }
+.status-incident-head .chevron { font-size: 0.75rem; color: var(--text-muted); }
+.status-incident-body { padding: 0.7rem; border-top: 1px solid var(--border); }
+.status-incident-body .desc { margin: 0 0 0.3rem; }
+.status-incident-body .comments { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
+.status-incident-body .comment {
+  font-size: 0.88rem;
+  margin-bottom: 0.4rem;
+  margin-left: 1.4rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--border);
+}
+.status-incident-body .comment .who { color: var(--text-muted); font-size: 0.76rem; }
+.status-incident-body .actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+
+/* ---------------------------------------------------------------------- */
 /* Timers                                                                  */
 /* ---------------------------------------------------------------------- */
 .timer-list { display: flex; flex-direction: column; gap: 0.5rem; }

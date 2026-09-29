@@ -339,10 +339,6 @@ window.Admin = {
     const full_name = document.getElementById("u-fullname").value.trim();
     const role = document.getElementById("u-role").value;
     const event_id = document.getElementById("u-event").value || null;
-    if (role !== "admin" && !event_id) {
-      document.getElementById("user-form-error").textContent = "Logger/observatør må ha et tilknyttet arrangement.";
-      return;
-    }
     const errEl = document.getElementById("user-form-error");
     errEl.textContent = "";
     try {
@@ -410,10 +406,6 @@ window.Admin = {
     if (eventEl) payload.event_id = eventEl.value || null;
     if (fromEl) payload.active_from = fromEl.value ? new Date(fromEl.value).toISOString() : null;
     if (untilEl) payload.active_until = untilEl.value ? new Date(untilEl.value).toISOString() : null;
-    if (payload.role && payload.role !== "admin" && !payload.event_id) {
-      alert(Lang.t("role_needs_event") || "Denne rollen krever et tilhørende arrangement.");
-      return;
-    }
     const target = this.users.find((u) => u.id === userId);
     const { error } = await sb.from("profiles").update(payload).eq("id", userId);
     if (error) { alert("Feil: " + error.message); return; }

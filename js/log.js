@@ -25,6 +25,7 @@ window.Log = {
   ],
   entries: [],
   locations: [],
+  expandedIncidents: new Set(),
 
   async init() {
     await this.loadLocations();
@@ -112,6 +113,7 @@ window.Log = {
       attachments: attachments.filter((a) => a.log_entry_id === e.id),
     }));
     this._renderEntries();
+    this._renderStatusPanel();
     if (window.Dashboard) Dashboard.update(this.entries);
   },
 
@@ -280,8 +282,8 @@ window.Log = {
     }
   },
 
-  async addComment(entryId) {
-    const el = document.getElementById(`comment-input-${entryId}`);
+  async addComment(entryId, inputId) {
+    const el = document.getElementById(inputId || `comment-input-${entryId}`);
     const text = el.value.trim();
     if (!text) return;
     await sb.from("log_comments").insert({
@@ -350,6 +352,74 @@ window.Log = {
   async attachmentUrl(path) {
     const { data } = await sb.storage.from("attachments").createSignedUrl(path, 3600);
     return data?.signedUrl;
+  },
+
+  toggleStatusIncident(entryId) {
+    if (this.expandedIncidents.has(entryId)) this.expandedIncidents.delete(entryId);
+    else this.expandedIncidents.add(entryId);
+    this._renderStatusPanel();
+  },
+
+  _renderStatusPanel() {
+    const el = document.getElementById("status-panel-body");
+    if (!el) return;
+    const byNewest = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+    const latestBeredskap = this.entries.filter((e) => e.beredskapsniva).sort(byNewest)[0];
+    const latestScene = this.entries.filter((e) => e.scene_farge).sort(byNewest)[0];
+    const openIncidents = this.entries.filter((e) => e.entry_kind === "hendelse" && e.status === "pagaende").sort(byNewest);
+    const canWrite = Auth.canWrite();
+
+    el.innerHTML = `
+      <div class="status-current">
+        <div class="status-current-item">
+          <span class="status-current-label">${Lang.t("beredskap")}</span>
+          ${latestBeredskap ? this._colorBadge(this.BEREDSKAP_LEVELS, latestBeredskap.beredskapsniva) : `<span class="small">–</span>`}
+          ${latestBeredskap ? `<span class="small status-current-time">${new Date(latestBeredskap.created_at).toLocaleString("no-NO")}</span>` : ""}
+        </div>
+        <div class="status-current-item">
+          <span class="status-current-label">${Lang.t("scene_farge")}</span>
+          ${latestScene ? this._colorBadge(this.SCENE_COLORS, latestScene.scene_farge) : `<span class="small">–</span>`}
+          ${latestScene ? `<span class="small status-current-time">${new Date(latestScene.created_at).toLocaleString("no-NO")}</span>` : ""}
+        </div>
+      </div>
+      <div class="status-incidents">
+        ${openIncidents.length ? openIncidents.map((e) => this._statusIncidentHtml(e, canWrite)).join("") : `<p class="small">${Lang.t("no_open_incidents")}</p>`}
+      </div>
+    `;
+  },
+
+  _statusIncidentHtml(e, canWrite) {
+    const expanded = this.expandedIncidents.has(e.id);
+    const isPrioritert = e.category === "Prioritert hendelse";
+    const preview = (e.description || "").slice(0, 50) + ((e.description || "").length > 50 ? "…" : "");
+    return `
+    <div class="status-incident">
+      <div class="status-incident-head" onclick="Log.toggleStatusIncident('${e.id}')">
+        <span class="display-id mono">${e.display_id}</span>
+        <span class="badge ${isPrioritert ? "category-prioritert" : "info"}">${this.CATEGORY_LABELS[e.category]}</span>
+        ${this._colorBadge(this.BEREDSKAP_LEVELS, e.beredskapsniva)}
+        ${this._colorBadge(this.SCENE_COLORS, e.scene_farge)}
+        <span class="status-incident-preview">${escapeHtml(preview)}</span>
+        <span class="timestamp mono">${new Date(e.created_at).toLocaleString("no-NO")}</span>
+        <span class="chevron">${expanded ? "▲" : "▼"}</span>
+      </div>
+      <div class="status-incident-body ${expanded ? "" : "hidden"}">
+        <p class="desc">${escapeHtml(e.description)}</p>
+        ${e.action_taken ? `<p class="small">${Lang.t("action_taken")}: ${escapeHtml(e.action_taken)}</p>` : ""}
+        ${e.location ? `<p class="small">${Lang.t("location")}: ${escapeHtml(e.location)}</p>` : ""}
+        <div class="comments">
+          ${e.comments.map((c) => `<div class="comment"><div class="who">${new Date(c.created_at).toLocaleString("no-NO")} — ${escapeHtml(c.created_by_name)}</div>${escapeHtml(c.comment_text)}</div>`).join("")}
+          ${canWrite ? `
+            <div class="row" style="margin-left:1.4rem">
+              <input id="status-comment-input-${e.id}" placeholder="${Lang.t("comment_placeholder")}" style="flex:1">
+              <button onclick="Log.addComment('${e.id}', 'status-comment-input-${e.id}')">${Lang.t("add_comment")}</button>
+            </div>` : ""}
+        </div>
+        <div class="actions">
+          ${canWrite ? `<button class="ghost" onclick="Log.markClosed('${e.id}')">${Lang.t("mark_closed")}</button>` : ""}
+        </div>
+      </div>
+    </div>`;
   },
 
   _renderEntries() {

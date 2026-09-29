@@ -43,8 +43,13 @@
       </div>
 
       <div class="panel">
-        <div class="panel-head" data-i18n="filters">Filter og søk</div>
-        <div class="filter-bar" id="filter-bar"></div>
+        <div class="panel-head" style="cursor:pointer" onclick="togglePanel('filters')">
+          <span data-i18n="filters">Filter og søk</span>
+          <button class="ghost" id="filters-toggle-icon" style="padding:.1rem .5rem">▲</button>
+        </div>
+        <div class="panel-body" id="filters-body" style="padding:0">
+          <div class="filter-bar" id="filter-bar"></div>
+        </div>
       </div>
 
       <div id="log-feed"></div>
@@ -52,8 +57,16 @@
 
     <div class="stack" id="right-panels">
       <div class="panel">
-        <div class="panel-head" data-i18n="tasks">Oppgaver</div>
-        <div class="panel-body">
+        <div class="panel-head" data-i18n="status_panel_title">Status</div>
+        <div class="panel-body" id="status-panel-body"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head" style="cursor:pointer" onclick="togglePanel('tasks')">
+          <span data-i18n="tasks">Oppgaver</span>
+          <button class="ghost" id="tasks-toggle-icon" style="padding:.1rem .5rem">▲</button>
+        </div>
+        <div class="panel-body" id="tasks-body">
           <div class="timer-list" id="task-list"></div>
           <div class="stack" id="tasks-add-form" style="margin-top:.7rem; gap:.4rem">
             <div class="row">
@@ -86,8 +99,11 @@
       </div>
 
       <div class="panel">
-        <div class="panel-head" data-i18n="timers">Tid</div>
-        <div class="panel-body">
+        <div class="panel-head" style="cursor:pointer" onclick="togglePanel('timers')">
+          <span data-i18n="timers">Tid</span>
+          <button class="ghost" id="timers-toggle-icon" style="padding:.1rem .5rem">▲</button>
+        </div>
+        <div class="panel-body" id="timers-body">
           <div class="timer-list" id="timer-list"></div>
           <div class="stack" style="margin-top:.7rem; gap:.4rem">
             <div class="row">
@@ -141,9 +157,28 @@
       localStorage.setItem("al_entry_form_collapsed", collapsed ? "1" : "0");
     }
 
+    // Generisk kollaps for "Filter og søk", "Oppgaver" og "Tid" - husker tilstand per nettleser.
+    function togglePanel(key) {
+      const body = document.getElementById(key + "-body");
+      const icon = document.getElementById(key + "-toggle-icon");
+      if (!body || !icon) return;
+      const collapsed = body.classList.toggle("hidden");
+      icon.textContent = collapsed ? "▼" : "▲";
+      localStorage.setItem("al_" + key + "_collapsed", collapsed ? "1" : "0");
+    }
+
+    function applyPanelCollapse(key) {
+      if (localStorage.getItem("al_" + key + "_collapsed") !== "1") return;
+      const body = document.getElementById(key + "-body");
+      const icon = document.getElementById(key + "-toggle-icon");
+      if (!body || !icon) return;
+      body.classList.add("hidden");
+      icon.textContent = "▼";
+    }
+
     function rerender() {
       Lang.apply();
-      Log._renderForm(); Log._renderFilters(); Log._renderEntries();
+      Log._renderForm(); Log._renderFilters(); Log._renderEntries(); Log._renderStatusPanel();
     }
     function updateTimerInputs() {
       const type = document.getElementById("new-timer-type").value;
@@ -203,6 +238,9 @@
         document.getElementById("entry-form").classList.add("hidden");
         document.getElementById("entry-form-toggle-icon").textContent = "▼";
       }
+      applyPanelCollapse("filters");
+      applyPanelCollapse("tasks");
+      applyPanelCollapse("timers");
     })();
   </script>
 </body>
