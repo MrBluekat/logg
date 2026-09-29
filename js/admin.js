@@ -196,7 +196,7 @@ window.Admin = {
           <input id="map-br-lng" placeholder="Lengdegrad (lng)" style="margin-top:.3rem" value="${existing ? existing.bottom_right_lng : ""}">
         </div>
       </div>
-      <button class="primary" onclick="Admin.saveMap()">${Lang.t("save")}</button>
+      <button class="primary" onclick="Admin.saveMap()">${Lang.t("save_map")}</button>
       <div id="map-error" class="error-text"></div>
     `;
   },
@@ -401,15 +401,25 @@ window.Admin = {
   },
 
   async saveUserRow(userId) {
+    const roleEl = document.getElementById(`u-role-${userId}`);
     const eventEl = document.getElementById(`u-event-${userId}`);
     const fromEl = document.getElementById(`u-from-${userId}`);
     const untilEl = document.getElementById(`u-until-${userId}`);
     const payload = {};
+    if (roleEl && !roleEl.disabled) payload.role = roleEl.value;
     if (eventEl) payload.event_id = eventEl.value || null;
     if (fromEl) payload.active_from = fromEl.value ? new Date(fromEl.value).toISOString() : null;
     if (untilEl) payload.active_until = untilEl.value ? new Date(untilEl.value).toISOString() : null;
+    if (payload.role && payload.role !== "admin" && !payload.event_id) {
+      alert(Lang.t("role_needs_event") || "Denne rollen krever et tilhørende arrangement.");
+      return;
+    }
+    const target = this.users.find((u) => u.id === userId);
     const { error } = await sb.from("profiles").update(payload).eq("id", userId);
     if (error) { alert("Feil: " + error.message); return; }
+    if (target && payload.role && payload.role !== target.role) {
+      Auth.logActivity("Endret rolle", `${target.username}: ${Lang.t("role_" + target.role)} → ${Lang.t("role_" + payload.role)}`);
+    }
     await this.refreshUsers();
     this.toast("Lagret");
   },
@@ -451,7 +461,13 @@ window.Admin = {
           <td style="white-space:nowrap">${moveButtons}</td>
           <td class="mono">${escapeHtml(u.username)}</td>
           <td>${escapeHtml(u.full_name)}</td>
-          <td>${Lang.t("role_" + u.role)}</td>
+          <td>
+            <select id="u-role-${u.id}" ${u.id === Auth.profile.id ? "disabled" : ""}>
+              <option value="logger" ${u.role === "logger" ? "selected" : ""}>${Lang.t("role_logger")}</option>
+              <option value="observator" ${u.role === "observator" ? "selected" : ""}>${Lang.t("role_observator")}</option>
+              <option value="admin" ${u.role === "admin" ? "selected" : ""}>${Lang.t("role_admin")}</option>
+            </select>
+          </td>
           <td>
             <select id="u-event-${u.id}">
               <option value="">${Lang.t("no_event")}</option>

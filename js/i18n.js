@@ -73,6 +73,7 @@ window.I18N = {
     role_admin: "Admin",
     role_logger: "Logger",
     role_observator: "Observatør",
+    role_needs_event: "Denne rollen krever et tilhørende arrangement.",
     assigned_event: "Tilhørende arrangement",
     create: "Opprett",
     reset_password: "Tilbakestill passord",
@@ -137,6 +138,7 @@ window.I18N = {
     map_image: "Kartbilde",
     map_top_left: "Øverst venstre hjørne",
     map_bottom_right: "Nederst høyre hjørne",
+    save_map: "Lagre eget kartoppsett",
   },
   en: {
     login_title: "Log in",
@@ -212,6 +214,7 @@ window.I18N = {
     role_admin: "Admin",
     role_logger: "Logger",
     role_observator: "Observer",
+    role_needs_event: "This role requires an assigned event.",
     assigned_event: "Assigned event",
     create: "Create",
     reset_password: "Reset password",
@@ -276,6 +279,7 @@ window.I18N = {
     map_image: "Map image",
     map_top_left: "Top-left corner",
     map_bottom_right: "Bottom-right corner",
+    save_map: "Save custom map setup",
   },
 };
 
