@@ -139,6 +139,8 @@ function wireUpEvents() {
   el("ping-form").addEventListener("submit", sendPing);
   el("close-map-sheet").addEventListener("click", () => el("map-sheet").classList.add("hidden"));
   el("map-sheet").addEventListener("click", (e) => { if (e.target.id === "map-sheet") el("map-sheet").classList.add("hidden"); });
+  el("close-minutes-sheet").addEventListener("click", () => el("minutes-sheet").classList.add("hidden"));
+  el("minutes-sheet").addEventListener("click", (e) => { if (e.target.id === "minutes-sheet") el("minutes-sheet").classList.add("hidden"); });
   el("close-guide-sheet").addEventListener("click", () => el("guide-sheet").classList.add("hidden"));
   el("guide-sheet").addEventListener("click", (e) => { if (e.target.id === "guide-sheet") el("guide-sheet").classList.add("hidden"); });
 
@@ -382,6 +384,7 @@ function entryRow(row) {
       ${row.scene_farge ? `<span class="badge-color" style="color:${SCENE_COLORS[row.scene_farge]}">${SCENE_LABELS[row.scene_farge]}</span>` : ""}
     </div>` : ""}
     ${row.latitude != null ? `<div class="meta-line"><button type="button" class="ghost gps-open-btn" data-lat="${row.latitude}" data-lng="${row.longitude}" data-acc="${row.gps_accuracy_m || ""}" style="padding:4px 8px; font-size:12px">📍 Åpne kart (±${Math.round(row.gps_accuracy_m || 0)} m)</button></div>` : ""}
+    ${row.category === "Mote" && row.meeting_id && row.meeting_phase === "avsluttet" ? `<div class="meta-line"><button type="button" class="ghost minutes-open-btn" data-meeting="${row.meeting_id}" style="padding:4px 8px; font-size:12px">📄 Les referat</button></div>` : ""}
     <div class="attachments-row" id="att-${row.id}"></div>
     ${row.entry_kind === "hendelse" ? `
       <div class="comment-list">
@@ -420,10 +423,38 @@ function entryRow(row) {
   if (commentBtn) commentBtn.addEventListener("click", () => addComment(row.id, li.querySelector(".comment-input")));
   const closeBtn = li.querySelector(".btn-close-case");
   if (closeBtn) closeBtn.addEventListener("click", () => markClosed(row.id));
+  const minBtn = li.querySelector(".minutes-open-btn");
+  if (minBtn) minBtn.addEventListener("click", () => openMinutes(minBtn.dataset.meeting));
   const gpsBtn = li.querySelector(".gps-open-btn");
   if (gpsBtn) gpsBtn.addEventListener("click", () => openMapViewer(parseFloat(gpsBtn.dataset.lat), parseFloat(gpsBtn.dataset.lng), gpsBtn.dataset.acc ? parseFloat(gpsBtn.dataset.acc) : null));
 
   return li;
+}
+
+// Møtereferat: ligger i egen tabell. Observatører får bare rad tilbake når loggfører har delt referatet.
+async function openMinutes(meetingId) {
+  const body = el("minutes-sheet-body");
+  body.innerHTML = "Henter …";
+  el("minutes-sheet").classList.remove("hidden");
+  const { data: m } = await db.from("meetings").select("*").eq("id", meetingId).single();
+  const { data: mmRows } = await db.from("meeting_minutes").select("*").eq("meeting_id", meetingId);
+  const mm = (mmRows || [])[0];
+  el("minutes-sheet-title").textContent = m ? m.title : "Møtereferat";
+  if (!m) { body.textContent = "Fant ikke møtet."; return; }
+  const names = (m.participants || []).map((p) => p.name).join(", ");
+  const meta = [formatTime(m.scheduled_at)];
+  if (m.location) meta.push(escapeHtml(m.location));
+  if (!mm) {
+    body.innerHTML = `<p>${meta.join(" · ")}</p><p>Referatet er ikke delt med observatører.</p>`;
+    return;
+  }
+  body.innerHTML = `
+    <p>${meta.join(" · ")}${names ? `<br>Deltakere: ${escapeHtml(names)}` : ""}</p>
+    <h4 style="margin:.6rem 0 .2rem">Referat</h4>
+    <p style="white-space:pre-wrap">${mm.minutes ? escapeHtml(mm.minutes) : "–"}</p>
+    <h4 style="margin:.8rem 0 .2rem">Hva ble vedtatt</h4>
+    <p style="white-space:pre-wrap">${mm.decisions ? escapeHtml(mm.decisions) : "–"}</p>
+    <p class="meta-text">Avsluttet av ${escapeHtml(m.ended_by_name || "–")} · ${formatTime(m.ended_at)}</p>`;
 }
 
 async function addComment(entryId, inputEl) {
