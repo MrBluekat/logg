@@ -443,8 +443,6 @@ create table public.meetings (
   status           text not null default 'planlagt' check (status in ('planlagt','avsluttet')),
   participants     jsonb not null default '[]'::jsonb,  -- [{"user_id": "...", "name": "..."} | {"name": "fritekst"}]
   source_entry_id  uuid references public.log_entries(id) on delete set null, -- hendelsen møtet ble opprettet fra
-  minutes          text,   -- referat
-  decisions        text,   -- hva ble vedtatt
   created_by       uuid references public.profiles(id) on delete set null,
   created_by_name  text not null,
   created_at       timestamptz not null default now(),
@@ -468,6 +466,41 @@ create policy "meetings: admin/logger endrer" on public.meetings
     or (public.current_role_name() = 'logger' and event_id = public.current_event_id())
   );
 create policy "meetings: admin/logger sletter" on public.meetings
+  for delete using (
+    public.current_role_name() = 'admin'
+    or (public.current_role_name() = 'logger' and event_id = public.current_event_id())
+  );
+
+-- Referat ligger i egen tabell slik at observatører bare kan lese det når loggfører har gitt tilgang.
+create table public.meeting_minutes (
+  meeting_id          uuid primary key references public.meetings(id) on delete cascade,
+  event_id            uuid not null references public.events(id) on delete cascade,
+  minutes             text,
+  decisions           text,
+  observers_can_read  boolean not null default false,
+  updated_by_name     text,
+  updated_at          timestamptz not null default now()
+);
+alter table public.meeting_minutes enable row level security;
+create policy "meeting_minutes: les" on public.meeting_minutes
+  for select using (
+    public.current_role_name() = 'admin'
+    or (event_id = public.current_event_id() and (
+          public.current_role_name() = 'logger'
+          or (public.current_role_name() = 'observator' and observers_can_read)
+       ))
+  );
+create policy "meeting_minutes: skriv" on public.meeting_minutes
+  for insert with check (
+    public.current_role_name() = 'admin'
+    or (public.current_role_name() = 'logger' and event_id = public.current_event_id())
+  );
+create policy "meeting_minutes: endre" on public.meeting_minutes
+  for update using (
+    public.current_role_name() = 'admin'
+    or (public.current_role_name() = 'logger' and event_id = public.current_event_id())
+  );
+create policy "meeting_minutes: slett" on public.meeting_minutes
   for delete using (
     public.current_role_name() = 'admin'
     or (public.current_role_name() = 'logger' and event_id = public.current_event_id())

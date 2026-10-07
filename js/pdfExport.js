@@ -199,7 +199,10 @@ window.PDFExport = {
 
     // ---- Vedlegg: møtereferat (alle avsluttede møter, nye sider) ----
     const { data: meetingRows } = await sb.from("meetings").select("*").eq("event_id", eventId).order("scheduled_at");
-    const endedMeetings = (meetingRows || []).filter((m) => m.status === "avsluttet");
+    const { data: minuteRows } = await sb.from("meeting_minutes").select("*").eq("event_id", eventId);
+    const minutesById = Object.fromEntries((minuteRows || []).map((r) => [r.meeting_id, r]));
+    const endedMeetings = (meetingRows || []).filter((m) => m.status === "avsluttet")
+      .map((m) => ({ ...m, minutes: minutesById[m.id]?.minutes, decisions: minutesById[m.id]?.decisions }));
     if (endedMeetings.length) {
       doc.addPage(); y = margin;
       sectionHeading("Vedlegg: Møtereferat");

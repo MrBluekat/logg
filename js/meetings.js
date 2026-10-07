@@ -10,7 +10,6 @@ window.Meetings = {
   async init(containerId) {
         await this.loadUsers();
     await this.load();
-    this.renderAddForm();
     this._render();
     this._subscribeRealtime();
     setInterval(() => this._render(), 30 * 1000); // oppdaterer "om X min" / "Pågår"
@@ -136,24 +135,28 @@ window.Meetings = {
     const locs = (window.Log && Log.locations) || [];
     return locs.map((l) => `<option value="${escapeHtml(l.name)}"></option>`).join("");
   },
-  refreshLocationList() {
-    const dl = this._el("mt-loc-list");
-    if (dl) dl.innerHTML = this.locationOptionsHtml();
-  },
-
-  renderAddForm() {
-    const el = this._el("meetings-add-form");
-    if (!el) return;
-    el.innerHTML = `
-      <div class="field" style="margin:0"><input id="mt-title" placeholder="${Lang.t("meeting_title")}"></div>
-      <div class="field" style="margin:0"><label>${Lang.t("meeting_time")}</label>
-        <input type="datetime-local" id="mt-time" value="${this._defaultTimeLocal()}"></div>
-      <div class="field" style="margin:0"><input id="mt-location" list="mt-loc-list" onfocus="Meetings.refreshLocationList()" placeholder="${Lang.t("meeting_location")}">
-        <datalist id="mt-loc-list">${this.locationOptionsHtml()}</datalist></div>
-      ${this.pickerHtml("mt")}
-      <button onclick="Meetings.createFromPanel()">${Lang.t("meeting_create")}</button>
-      <div id="mt-error" class="error-text"></div>`;
+  // Vindu for nytt møte (åpnes fra knappen i panelet)
+  openNew() {
+    this.resetPicker("mt");
+    const box = this._el("history-modal");
+    box.innerHTML = `
+      <div class="panel" style="max-width:560px;margin:2rem auto;">
+        <div class="panel-head">${Lang.t("new_meeting_heading")}
+          <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
+        <div class="panel-body stack" style="gap:.5rem; max-height:75vh; overflow-y:auto">
+          <input id="mt-title" placeholder="${Lang.t("meeting_title")}">
+          <div class="field" style="margin:0"><label>${Lang.t("meeting_time")}</label>
+            <input type="datetime-local" id="mt-time" value="${this._defaultTimeLocal()}"></div>
+          <input id="mt-location" list="mt-loc-list" placeholder="${Lang.t("meeting_location")}">
+          <datalist id="mt-loc-list">${this.locationOptionsHtml()}</datalist>
+          ${this.pickerHtml("mt")}
+          <button class="primary" id="mt-create-btn" onclick="Meetings.createFromPanel()">${Lang.t("meeting_create")}</button>
+          <div id="mt-error" class="error-text"></div>
+        </div>
+      </div>`;
+    box.classList.remove("hidden");
     this.refreshPicker("mt");
+    this._el("mt-title").focus();
   },
 
   async createFromPanel() {
@@ -162,15 +165,62 @@ window.Meetings = {
     const err = this._el("mt-error");
     err.textContent = "";
     if (!title || !time) { err.textContent = Lang.t("meeting_missing_fields"); return; }
+    this._el("mt-create-btn").disabled = true;
     const res = await this.create({
       title,
       scheduledAtIso: new Date(time).toISOString(),
       participants: this.getParticipants("mt"),
       location: this._el("mt-location").value.trim(),
     });
-    if (res.error) { err.textContent = res.error.message; return; }
+    if (res.error) { err.textContent = res.error.message || String(res.error); this._el("mt-create-btn").disabled = false; return; }
     this.resetPicker("mt");
-    this.renderAddForm();
+    this._el("history-modal").classList.add("hidden");
+    await this.load();
+    this._render();
+    if (window.Log) await Log.refresh();
+  },
+
+  // Opprett møte ut fra en eksisterende hendelse (knapp på hendelsen i loggen og i Status-panelet)
+  openFromEntry(entryId) {
+    const e = (window.Log && Log.entries || []).find((x) => x.id === entryId);
+    if (!e) return;
+    this.resetPicker("mm");
+    const box = this._el("history-modal");
+    box.innerHTML = `
+      <div class="panel" style="max-width:560px;margin:2rem auto;">
+        <div class="panel-head">${Lang.t("meeting_from_incident")}: ${escapeHtml(e.display_id)}
+          <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
+        <div class="panel-body stack" style="gap:.5rem; max-height:75vh; overflow-y:auto">
+          <p class="small">${escapeHtml(e.description)}</p>
+          <input id="mm-title" value="Krisemøte" placeholder="${Lang.t("meeting_title")}">
+          <div class="field" style="margin:0"><label>${Lang.t("meeting_time")}</label>
+            <input type="datetime-local" id="mm-time" value="${this._defaultTimeLocal()}"></div>
+          <input id="mm-location" list="mm-loc-list" value="${escapeHtml(e.location || "")}" placeholder="${Lang.t("meeting_location")}">
+          <datalist id="mm-loc-list">${this.locationOptionsHtml()}</datalist>
+          ${this.pickerHtml("mm")}
+          <button class="primary" id="mm-create-btn" onclick="Meetings.confirmFromEntry('${e.id}')">${Lang.t("meeting_create")}</button>
+          <div id="mm-error" class="error-text"></div>
+        </div>
+      </div>`;
+    box.classList.remove("hidden");
+    this.refreshPicker("mm");
+  },
+
+  async confirmFromEntry(entryId) {
+    const e = (window.Log && Log.entries || []).find((x) => x.id === entryId);
+    const title = this._el("mm-title").value.trim();
+    const time = this._el("mm-time").value;
+    const err = this._el("mm-error");
+    if (!title || !time) { err.textContent = Lang.t("meeting_missing_fields"); return; }
+    this._el("mm-create-btn").disabled = true;
+    const res = await this.create({
+      title, scheduledAtIso: new Date(time).toISOString(),
+      participants: this.getParticipants("mm"), sourceEntry: e,
+      location: this._el("mm-location").value.trim(),
+    });
+    if (res.error) { err.textContent = res.error.message || String(res.error); this._el("mm-create-btn").disabled = false; return; }
+    this.resetPicker("mm");
+    this._el("history-modal").classList.add("hidden");
     await this.load();
     this._render();
     if (window.Log) await Log.refresh();
@@ -230,6 +280,10 @@ window.Meetings = {
             <textarea id="mt-end-minutes" rows="6"></textarea></div>
           <div class="field"><label>${Lang.t("meeting_decisions")}</label>
             <textarea id="mt-end-decisions" rows="4"></textarea></div>
+          <label class="row" style="align-items:center; gap:.4rem; padding:.5rem .6rem; border:1px solid var(--border); border-radius:6px">
+            <input type="checkbox" id="mt-end-observers">
+            <span>${Lang.t("meeting_observers_can_read")}</span>
+          </label>
           <button class="primary" id="mt-end-btn" onclick="Meetings.confirmEnd('${m.id}')">${Lang.t("meeting_end")}</button>
           <div id="mt-end-error" class="error-text"></div>
         </div>
@@ -245,10 +299,20 @@ window.Meetings = {
     const btn = this._el("mt-end-btn");
     btn.disabled = true;
 
+    const observersCanRead = this._el("mt-end-observers").checked;
+    const { error: minErr } = await sb.from("meeting_minutes").upsert({
+      meeting_id: id, event_id: Auth.event.id,
+      minutes: minutes || null, decisions: decisions || null,
+      observers_can_read: observersCanRead,
+      updated_by_name: Auth.profile.full_name, updated_at: new Date().toISOString(),
+    });
+    if (minErr) {
+      this._el("mt-end-error").textContent = minErr.message;
+      btn.disabled = false;
+      return;
+    }
     const { error } = await sb.from("meetings").update({
       status: "avsluttet",
-      minutes: minutes || null,
-      decisions: decisions || null,
       ended_at: new Date().toISOString(),
       ended_by_name: Auth.profile.full_name,
     }).eq("id", id);
@@ -277,18 +341,24 @@ window.Meetings = {
   // ------------------------------------------------------------------------
   async showMinutes(id) {
     const { data: m } = await sb.from("meetings").select("*").eq("id", id).single();
+    // Referatet ligger i egen tabell: observatører får ingen rad tilbake med mindre loggfører har delt det.
+    const { data: mmRows } = await sb.from("meeting_minutes").select("*").eq("meeting_id", id);
+    const mm = (mmRows || [])[0];
     const box = this._el("history-modal");
     const names = m ? this._participantNames(m) : "";
     const body = !m
       ? `<p class="small">${Lang.t("meeting_not_found")}</p>`
       : m.status !== "avsluttet"
         ? `<p class="small">${Lang.t("meeting_not_ended")}</p>`
-        : `
+        : !mm
+          ? `<p class="small">${Lang.t("meeting_minutes_hidden")}</p>`
+          : `
           <h4 style="margin:.2rem 0">${Lang.t("meeting_minutes")}</h4>
-          <p style="white-space:pre-wrap">${m.minutes ? escapeHtml(m.minutes) : "–"}</p>
+          <p style="white-space:pre-wrap">${mm.minutes ? escapeHtml(mm.minutes) : "–"}</p>
           <h4 style="margin:.8rem 0 .2rem">${Lang.t("meeting_decisions")}</h4>
-          <p style="white-space:pre-wrap">${m.decisions ? escapeHtml(m.decisions) : "–"}</p>
-          <p class="small" style="margin-top:.8rem">${Lang.t("meeting_ended_by")} ${escapeHtml(m.ended_by_name || "–")} · ${m.ended_at ? new Date(m.ended_at).toLocaleString("no-NO") : ""}</p>`;
+          <p style="white-space:pre-wrap">${mm.decisions ? escapeHtml(mm.decisions) : "–"}</p>
+          <p class="small" style="margin-top:.8rem">${Lang.t("meeting_ended_by")} ${escapeHtml(m.ended_by_name || "–")} · ${m.ended_at ? new Date(m.ended_at).toLocaleString("no-NO") : ""}</p>
+          ${Auth.canWrite() ? `<p class="small">${mm.observers_can_read ? "👁 " + Lang.t("meeting_observers_yes") : "🔒 " + Lang.t("meeting_observers_no")}</p>` : ""}`;
     box.innerHTML = `
       <div class="panel" style="max-width:600px;margin:2rem auto;">
         <div class="panel-head">${m ? escapeHtml(m.title) : Lang.t("meeting_minutes")}

@@ -160,6 +160,19 @@ window.Log = {
         <div class="field"><label>${Lang.t("category")}</label>
           <select id="in-category">${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
       </div>
+      <div class="meeting-option hidden" id="in-meeting-wrap">
+        <label class="meeting-option-label">
+          <input type="checkbox" id="in-create-meeting" onchange="Log.toggleMeetingFields()">
+          <span>🗓 ${Lang.t("meeting_from_incident")}</span>
+        </label>
+        <div class="stack hidden" id="in-meeting-fields" style="gap:.4rem; margin-top:.4rem">
+          <input id="em-title" placeholder="${Lang.t("meeting_title")}">
+          <input id="em-time" type="datetime-local">
+          <input id="em-location" list="em-loc-list" placeholder="${Lang.t("meeting_location")}">
+          <datalist id="em-loc-list">${Meetings.locationOptionsHtml()}</datalist>
+          ${Meetings.pickerHtml("em")}
+        </div>
+      </div>
       <div class="grid-2">
         <div class="field"><label>${Lang.t("location")} <button class="ghost" style="padding:.1rem .4rem" onclick="Log.manageLocations()">⚙</button></label>
           <select id="in-location" onchange="document.getElementById('in-location-custom').classList.toggle('hidden', this.value !== '__custom')">
@@ -187,19 +200,6 @@ window.Log = {
         <div class="check-list">${this.SCENE_COLORS.map((s) => `
           <label class="color-chip" style="--chip-color:${s.color}"><input type="radio" name="in-scene" value="${s.value}"> ${s.label}</label>
         `).join("")}</div>
-      </div>
-      <div class="field hidden" id="in-meeting-wrap">
-        <label class="row" style="align-items:center; gap:.4rem">
-          <input type="checkbox" id="in-create-meeting" onchange="Log.toggleMeetingFields()">
-          <span>${Lang.t("meeting_from_incident")}</span>
-        </label>
-        <div class="stack hidden" id="in-meeting-fields" style="gap:.4rem; margin-top:.4rem">
-          <input id="em-title" placeholder="${Lang.t("meeting_title")}">
-          <input id="em-time" type="datetime-local">
-          <input id="em-location" list="em-loc-list" placeholder="${Lang.t("meeting_location")}">
-          <datalist id="em-loc-list">${Meetings.locationOptionsHtml()}</datalist>
-          ${Meetings.pickerHtml("em")}
-        </div>
       </div>
       <div class="field"><label>${Lang.t("attachments")}</label><input type="file" id="in-files" multiple></div>
       <button class="primary" onclick="Log.submit()">${Lang.t("save")}</button>
@@ -480,6 +480,7 @@ window.Log = {
             </div>` : ""}
         </div>
         <div class="actions">
+          ${canWrite ? `<button class="ghost" onclick="Meetings.openFromEntry('${e.id}')">🗓 ${Lang.t("meeting_from_incident")}</button>` : ""}
           ${canWrite ? `<button class="ghost" onclick="Log.markClosed('${e.id}')">${Lang.t("mark_closed")}</button>` : ""}
         </div>
       </div>
@@ -544,6 +545,7 @@ window.Log = {
         <div class="actions">
           ${e.category === "Mote" && e.meeting_id && e.meeting_phase === "avsluttet" ? `<button class="ghost" onclick="Meetings.showMinutes('${e.meeting_id}')">📄 ${Lang.t("meeting_read_minutes")}</button>` : ""}
           ${canWrite && e.category !== "Mote" && this.canEdit(e) ? `<button class="ghost" onclick="Log.startEdit('${e.id}')">${Lang.t("edit")}</button>` : ""}
+          ${canWrite && e.entry_kind === "hendelse" && e.status === "pagaende" ? `<button class="ghost" onclick="Meetings.openFromEntry('${e.id}')">🗓 ${Lang.t("meeting_from_incident")}</button>` : ""}
           ${canWrite && e.entry_kind === "hendelse" && e.status === "pagaende" ? `<button class="ghost" onclick="Log.markClosed('${e.id}')">${Lang.t("mark_closed")}</button>` : ""}
         </div>
       </div>

@@ -68,36 +68,10 @@
         </div>
         <div class="panel-body" id="tasks-body">
           <div class="timer-list" id="task-list"></div>
-          <div class="list-label" style="margin-top:.9rem" data-i18n="new_task_heading">Ny oppgave</div>
-          <div class="stack" id="tasks-add-form" style="margin-top:.5rem; gap:.4rem">
-            <div class="row">
-              <input id="task-description" placeholder="Beskrivelse" style="flex:2">
-              <select id="task-assigned-select" style="flex:1" onchange="document.getElementById('task-assigned-custom').classList.toggle('hidden', this.value !== '__custom')">
-                <option value="__custom" data-i18n="task_assign_method_text">Fritekst</option>
-              </select>
-              <input id="task-assigned-custom" data-i18n-placeholder="task_assigned" placeholder="Ansvarlig" style="flex:1">
-            </div>
-            <label class="row" style="align-items:center; gap:.3rem">
-              <input type="checkbox" id="task-has-timer" onchange="document.getElementById('task-timer-block').classList.toggle('hidden', !this.checked)">
-              <span data-i18n="task_has_timer">Nedtellende timer</span>
-            </label>
-            <div class="stack hidden" id="task-timer-block" style="gap:.4rem">
-              <select id="task-timer-mode" onchange="updateTaskTimerInputs()">
-                <option value="duration" data-i18n="timer_type_countdown_duration">Nedtelling (varighet)</option>
-                <option value="fixed_time" data-i18n="timer_type_countdown_to">Nedtelling til tidspunkt</option>
-              </select>
-              <div class="row" id="task-duration-inputs">
-                <input id="task-timer-hours" type="number" min="0" placeholder="t" style="width:60px">
-                <input id="task-timer-minutes" type="number" min="0" placeholder="min" style="width:60px">
-              </div>
-              <div class="row hidden" id="task-fixed-inputs">
-                <input id="task-timer-target" type="datetime-local" style="flex:1">
-              </div>
-            </div>
-            <button onclick="Tasks.add()" data-i18n="task_add">Legg til oppgave</button>
+          <div class="row" style="margin-top:.8rem; gap:.5rem">
+            <button class="primary" style="flex:1" onclick="Tasks.openNew()" data-i18n="new_task_btn">+ Ny oppgave</button>
+            <button class="primary" style="flex:1" onclick="Meetings.openNew()" data-i18n="new_meeting_btn">+ Nytt møte</button>
           </div>
-          <div class="list-label" style="margin-top:1rem" data-i18n="new_meeting_heading">Nytt møte</div>
-          <div class="stack" id="meetings-add-form" style="gap:.4rem"></div>
         </div>
       </div>
 
@@ -183,7 +157,7 @@
     function rerender() {
       Lang.apply();
       Log._renderForm(); Log._renderFilters(); Log._renderEntries(); Log._renderStatusPanel();
-      Meetings.renderAddForm(); Meetings._render();
+      Meetings._render();
     }
     function updateTimerInputs() {
       const type = document.getElementById("new-timer-type").value;

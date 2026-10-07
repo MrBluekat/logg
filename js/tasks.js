@@ -44,6 +44,46 @@ window.Tasks = {
     return max + 1;
   },
 
+  // Vindu for ny oppgave (åpnes fra knappen i panelet)
+  openNew() {
+    const box = document.getElementById("history-modal");
+    box.innerHTML = `
+      <div class="panel" style="max-width:560px;margin:2rem auto;">
+        <div class="panel-head">${Lang.t("new_task_heading")}
+          <button class="ghost" onclick="document.getElementById('history-modal').classList.add('hidden')">✕</button></div>
+        <div class="panel-body stack" style="gap:.5rem; max-height:75vh; overflow-y:auto">
+          <input id="task-description" placeholder="${Lang.t("task_description")}">
+          <div class="row">
+            <select id="task-assigned-select" style="flex:1" onchange="document.getElementById('task-assigned-custom').classList.toggle('hidden', this.value !== '__custom')"></select>
+            <input id="task-assigned-custom" placeholder="${Lang.t("task_assigned")}" style="flex:1">
+          </div>
+          <label class="row" style="align-items:center; gap:.3rem">
+            <input type="checkbox" id="task-has-timer" onchange="document.getElementById('task-timer-block').classList.toggle('hidden', !this.checked)">
+            <span>${Lang.t("task_has_timer")}</span>
+          </label>
+          <div class="stack hidden" id="task-timer-block" style="gap:.4rem">
+            <select id="task-timer-mode" onchange="updateTaskTimerInputs()">
+              <option value="duration">${Lang.t("timer_type_countdown_duration")}</option>
+              <option value="fixed_time">${Lang.t("timer_type_countdown_to")}</option>
+            </select>
+            <div class="row" id="task-duration-inputs">
+              <input id="task-timer-hours" type="number" min="0" placeholder="t" style="width:70px">
+              <input id="task-timer-minutes" type="number" min="0" placeholder="min" style="width:70px">
+            </div>
+            <div class="row hidden" id="task-fixed-inputs">
+              <input id="task-timer-target" type="datetime-local" style="flex:1">
+            </div>
+          </div>
+          <button class="primary" onclick="Tasks.add()">${Lang.t("task_add")}</button>
+        </div>
+      </div>`;
+    const select = document.getElementById("task-assigned-select");
+    select.innerHTML = `<option value="__custom">${Lang.t("task_assign_method_text")}</option>` +
+      this.eventUsers.map((u) => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join("");
+    box.classList.remove("hidden");
+    document.getElementById("task-description").focus();
+  },
+
   async add() {
     const description = document.getElementById("task-description").value.trim();
     const assignSelect = document.getElementById("task-assigned-select").value;
@@ -88,12 +128,7 @@ window.Tasks = {
       Auth.logActivity("Tildelte oppgave", `${description} → ${assigned_name}`);
     }
 
-    document.getElementById("task-description").value = "";
-    document.getElementById("task-assigned-custom").value = "";
-    document.getElementById("task-assigned-select").value = "__custom";
-    document.getElementById("task-timer-hours").value = "";
-    document.getElementById("task-timer-minutes").value = "";
-    document.getElementById("task-timer-target").value = "";
+    document.getElementById("history-modal").classList.add("hidden");
     await this.load();
     this._render();
   },
