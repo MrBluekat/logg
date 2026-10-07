@@ -20,6 +20,7 @@ const CATEGORY_LABELS = {
   Vaer: "Vær",
   Publikumstall: "Publikumstall",
   Ping: "📍 Ping",
+  Mote: "🗓 Møte",
 };
 
 const BEREDSKAP_LABELS = { gronn: "Grønt beredskapsnivå", gul: "Gult beredskapsnivå", rod: "Rødt beredskapsnivå" };
@@ -51,7 +52,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("offline", updateOnlineStatus);
 
   const { data: { session } } = await db.auth.getSession();
-  if (session) await loadProfileAndEnter();
+  if (session) {
+    await loadProfileAndEnter();
+    // Appen gjenbruker en lagret økt (vanlig for PWA lagt til på hjemskjermen) -
+    // logg det som en innlogging likevel, slik at aktivitetsloggen faktisk viser
+    // at brukeren var inne, i stedet for bare å dukke opp under "Innlogget nå".
+    await logActivity("Logget inn");
+  }
 
   // Mobiler fryser ofte apper i bakgrunnen, som bryter sanntids-tilkoblingen (Realtime).
   // Hent fersk data på nytt hver gang appen kommer tilbake i forgrunnen.
@@ -95,7 +102,7 @@ function wireUpEvents() {
       return;
     }
     await loadProfileAndEnter();
-    logActivity("Logget inn");
+    await logActivity("Logget inn");
   });
 
   document.querySelectorAll(".tab-btn").forEach((btn) => {
