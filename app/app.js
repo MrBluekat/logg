@@ -1124,3 +1124,10 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.add("hidden"), 3000);
 }
+
+// ESC lukker øverste åpne vindu (sheet), på lik linje med «Lukk».
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  const open = Array.from(document.querySelectorAll(".sheet-backdrop:not(.hidden)"));
+  if (open.length) open[open.length - 1].classList.add("hidden");
+});

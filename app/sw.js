@@ -1,6 +1,6 @@
 // Øk dette tallet hver gang appen oppdateres med nytt innhold, slik at gamle
 // enheter systematisk får ny versjon i stedet for å sitte fast på en cachet en.
-const CACHE_NAME = "arrangementslogg-v3";
+const CACHE_NAME = "arrangementslogg-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
