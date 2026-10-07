@@ -7,3 +7,12 @@ function escapeHtml(str) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   }[c]));
 }
+
+// ESC lukker vinduet (#history-modal) på lik linje med ✕-knappen.
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  const box = document.getElementById("history-modal");
+  if (!box || box.classList.contains("hidden")) return;
+  if (window.Notifications && Notifications.isOpen) Notifications.close();
+  else box.classList.add("hidden");
+});

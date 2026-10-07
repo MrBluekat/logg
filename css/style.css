@@ -474,6 +474,6 @@ table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 0.7
 .kind-badge.meeting { color: #4F8EF7; border-color: #4F8EF7; background: rgba(79,142,247,.12); }
 .meeting-card { border-left: 3px solid #4F8EF7; }
 
-.meeting-option { border: 2px solid #4F8EF7; background: rgba(79,142,247,.10); border-radius: 8px; padding: .7rem .8rem; margin: .2rem 0 .9rem; }
-.meeting-option-label { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1rem; cursor: pointer; color: #4F8EF7; }
-.meeting-option-label input { width: 1.2rem; height: 1.2rem; }
+.meeting-option { margin: .2rem 0 .9rem; }
+.meeting-option-label { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .9rem; cursor: pointer; color: #4F8EF7; border: 2px solid #4F8EF7; background: rgba(79,142,247,.10); border-radius: 8px; padding: .45rem .8rem; }
+.meeting-option-label input { width: 1.1rem; height: 1.1rem; margin: 0; }
