@@ -43,8 +43,12 @@ window.Guide = {
           <p class="small">Øverst i høyre kolonne finner du "Status" – en sanntidsoversikt som viser <strong>siste registrerte beredskapsnivå og scenefarge</strong> med tidspunkt, uten at du trenger å scrolle ned i loggen for å finne siste oppdatering.</p>
           <p class="small">Under dette listes alle <strong>åpne (ikke avsluttede) hendelser</strong>. Trykk på en hendelse for å utvide den – da vises full beskrivelse og alle kommentarer, og du kan legge til en ny oppdatering eller markere hendelsen som avsluttet, direkte der, uten å måtte lete den opp nede i selve loggen.</p>
 
+          <h3>Oppgaver og møter</h3>
+          <p class="small">Panelet «Oppgaver / Møter» viser oppgaver og møter i <strong>samme liste</strong>, merket tydelig som OPPGAVE eller MØTE. Under listen finner du skjema for både ny oppgave og nytt møte. Et møte har tittel, tidspunkt, møtested og flere deltakere – både eksisterende brukere (som får varsel) og navn i fritekst. Når møtet opprettes dukker det opp som en egen linje i loggen. Møtet ligger i oversikten til du trykker <strong>Avslutt møte</strong>, der du skriver referat og hva som ble vedtatt. Avslutningen havner også i loggen, med knappen «Les referat». Alle avsluttede møtereferat tas med som vedlegg bakerst i PDF-eksporten.</p>
+          <p class="small">Når du loggfører en <strong>hendelse</strong> kan du krysse av for «Opprett møte basert på hendelse» – f.eks. for å starte et krisemøte mens hendelsen pågår.</p>
+
           <h3>Kollapsbare paneler</h3>
-          <p class="small">"Ny loggføring", "Filter og søk", "Oppgaver" og "Tid" kan alle slås sammen med ▲/▼-knappen i hjørnet av panelet, for å spare plass på skjermen. Valget huskes i nettleseren til neste gang du logger inn.</p>
+          <p class="small">"Ny loggføring", "Filter og søk", "Oppgaver / Møter" og "Tid" kan alle slås sammen med ▲/▼-knappen i hjørnet av panelet, for å spare plass på skjermen. Valget huskes i nettleseren til neste gang du logger inn.</p>
 
         </div>
       </div>`;

@@ -63,12 +63,13 @@
 
       <div class="panel">
         <div class="panel-head" style="cursor:pointer" onclick="togglePanel('tasks')">
-          <span data-i18n="tasks">Oppgaver</span>
+          <span data-i18n="tasks">Oppgaver / Møter</span>
           <button class="ghost" id="tasks-toggle-icon" style="padding:.1rem .5rem">▲</button>
         </div>
         <div class="panel-body" id="tasks-body">
           <div class="timer-list" id="task-list"></div>
-          <div class="stack" id="tasks-add-form" style="margin-top:.7rem; gap:.4rem">
+          <div class="list-label" style="margin-top:.9rem" data-i18n="new_task_heading">Ny oppgave</div>
+          <div class="stack" id="tasks-add-form" style="margin-top:.5rem; gap:.4rem">
             <div class="row">
               <input id="task-description" placeholder="Beskrivelse" style="flex:2">
               <select id="task-assigned-select" style="flex:1" onchange="document.getElementById('task-assigned-custom').classList.toggle('hidden', this.value !== '__custom')">
@@ -95,6 +96,8 @@
             </div>
             <button onclick="Tasks.add()" data-i18n="task_add">Legg til oppgave</button>
           </div>
+          <div class="list-label" style="margin-top:1rem" data-i18n="new_meeting_heading">Nytt møte</div>
+          <div class="stack" id="meetings-add-form" style="gap:.4rem"></div>
         </div>
       </div>
 
@@ -147,6 +150,7 @@
   <script src="js/files.js"></script>
   <script src="js/tasks.js"></script>
   <script src="js/notifications.js"></script>
+  <script src="js/meetings.js"></script>
   <script src="js/guide.js"></script>
   <script>
     function toggleEntryForm() {
@@ -179,6 +183,7 @@
     function rerender() {
       Lang.apply();
       Log._renderForm(); Log._renderFilters(); Log._renderEntries(); Log._renderStatusPanel();
+      Meetings.renderAddForm(); Meetings._render();
     }
     function updateTimerInputs() {
       const type = document.getElementById("new-timer-type").value;
@@ -232,6 +237,7 @@
       updateTimerInputs();
       await Tasks.init("task-list");
       await Notifications.init();
+      await Meetings.init();
       await Log.init();
       await Gps.loadEventMap();
       if (Auth.canWrite() && localStorage.getItem("al_entry_form_collapsed") === "1") {

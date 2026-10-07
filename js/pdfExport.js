@@ -197,6 +197,35 @@ window.PDFExport = {
       });
     }
 
+    // ---- Vedlegg: møtereferat (alle avsluttede møter, nye sider) ----
+    const { data: meetingRows } = await sb.from("meetings").select("*").eq("event_id", eventId).order("scheduled_at");
+    const endedMeetings = (meetingRows || []).filter((m) => m.status === "avsluttet");
+    if (endedMeetings.length) {
+      doc.addPage(); y = margin;
+      sectionHeading("Vedlegg: Møtereferat");
+      const fmt = (iso) => (iso ? new Date(iso).toLocaleString("no-NO") : "–");
+      endedMeetings.forEach((m, i) => {
+        ensureSpace(60);
+        text(`Vedlegg ${i + 1}: ${m.title}`, 11, "bold");
+        const parts = (m.participants || []).map((p) => p.name).filter(Boolean);
+        const meta = [`Tidspunkt: ${fmt(m.scheduled_at)}`];
+        if (m.location) meta.push(`Sted: ${m.location}`);
+        text(meta.join("   ·   "), 8, "normal", "#666666");
+        if (parts.length) text(`Deltakere: ${parts.join(", ")}`, 8, "normal", "#666666");
+        y += 3;
+        text("Referat", 9, "bold");
+        text(m.minutes || "–", 8.5);
+        y += 3;
+        text("Vedtak", 9, "bold");
+        text(m.decisions || "–", 8.5);
+        y += 3;
+        text(`Avsluttet av ${m.ended_by_name || "–"} ${fmt(m.ended_at)}`, 7.5, "italic", "#888888");
+        y += 4;
+        rule();
+        y += 6;
+      });
+    }
+
     doc.save(`${eventName.replace(/[^a-z0-9]/gi, "_")}_logg.pdf`);
   },
 };

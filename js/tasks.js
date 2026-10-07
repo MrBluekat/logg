@@ -158,12 +158,12 @@ window.Tasks = {
     return t.remaining_seconds ?? t.duration_seconds ?? 0;
   },
 
-  _render() {
-    if (!this.containerEl) return;
+  _itemHtml(t) {
     const canWrite = Auth.canWrite();
-    this.containerEl.innerHTML = this.list.map((t) => `
-      <div class="timer ${t.timer_state === "running" ? "running" : ""} ${t.done ? "done" : ""}" style="flex-wrap:wrap">
+    return `
+      <div class="timer item-task ${t.timer_state === "running" ? "running" : ""} ${t.done ? "done" : ""}" style="flex-wrap:wrap">
         <input type="checkbox" ${t.done ? "checked" : ""} ${canWrite ? `onchange="Tasks.toggleDone('${t.id}')"` : "disabled"}>
+        <span class="kind-badge task">${Lang.t("item_task")}</span>
         <span class="name" style="${t.done ? "text-decoration:line-through; color:var(--text-muted)" : ""}">
           ${escapeHtml(t.description)}${t.assigned_name ? ` <span class="small">— ${escapeHtml(t.assigned_name)}</span>` : ""}
         </span>
@@ -177,7 +177,13 @@ window.Tasks = {
           ` : ""}
         ` : ""}
         ${canWrite ? `<button class="ghost" onclick="Tasks.remove('${t.id}')">${Lang.t("remove")}</button>` : ""}
-      </div>
-    `).join("") || `<p class="small">–</p>`;
+      </div>`;
+  },
+
+  // Oppgaver og møter vises i én felles liste (se Meetings.renderAll).
+  _render() {
+    if (!this.containerEl) return;
+    if (window.Meetings) { Meetings.renderAll(); return; }
+    this.containerEl.innerHTML = this.list.map((t) => this._itemHtml(t)).join("") || `<p class="small">–</p>`;
   },
 };

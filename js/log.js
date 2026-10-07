@@ -10,7 +10,9 @@ window.Log = {
     "Vaer": "Vær",
     "Publikumstall": "Publikumstall",
     "Ping": "📍 Ping",
+    "Mote": "🗓 Møte",
   },
+  FILTER_CATEGORIES: ["Loggforing", "Utvisning", "Medisinsk hendelse", "Hendelse", "Prioritert hendelse", "Scene", "Vaer", "Publikumstall", "Ping", "Mote"],
   NOTIFY_OPTIONS: ["Politi", "AMK", "Brannvesenet", "Sikkerhetsleder", "Krisegruppen"],
   BEREDSKAP_LEVELS: [
     { value: "gronn", label: "Grønt beredskapsnivå", color: "#3dbe7b" },
@@ -133,7 +135,7 @@ window.Log = {
     el.innerHTML = `
       <div class="field"><label>${Lang.t("category")}</label>
         <select id="f-category" onchange="Log.applyFilters()"><option value="">${Lang.t("all_categories")}</option>
-        ${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
+        ${this.FILTER_CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
       <div class="field"><label>${Lang.t("location")}</label>
         <select id="f-location" onchange="Log.applyFilters()"><option value="">${Lang.t("all_locations")}</option>
         ${this.locations.map((l) => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join("")}</select></div>
@@ -153,7 +155,7 @@ window.Log = {
     el.innerHTML = `
       <div class="grid-2">
         <div class="field"><label>${Lang.t("entry_type_label")}</label>
-          <select id="in-kind"><option value="info">${Lang.t("entry_kind_info")}</option><option value="hendelse">${Lang.t("entry_kind_hendelse")}</option></select>
+          <select id="in-kind" onchange="Log.onKindChange()"><option value="info">${Lang.t("entry_kind_info")}</option><option value="hendelse">${Lang.t("entry_kind_hendelse")}</option></select>
         </div>
         <div class="field"><label>${Lang.t("category")}</label>
           <select id="in-category">${this.CATEGORIES.map((c) => `<option value="${c}">${this.CATEGORY_LABELS[c]}</option>`).join("")}</select></div>
@@ -186,10 +188,47 @@ window.Log = {
           <label class="color-chip" style="--chip-color:${s.color}"><input type="radio" name="in-scene" value="${s.value}"> ${s.label}</label>
         `).join("")}</div>
       </div>
+      <div class="field hidden" id="in-meeting-wrap">
+        <label class="row" style="align-items:center; gap:.4rem">
+          <input type="checkbox" id="in-create-meeting" onchange="Log.toggleMeetingFields()">
+          <span>${Lang.t("meeting_from_incident")}</span>
+        </label>
+        <div class="stack hidden" id="in-meeting-fields" style="gap:.4rem; margin-top:.4rem">
+          <input id="em-title" placeholder="${Lang.t("meeting_title")}">
+          <input id="em-time" type="datetime-local">
+          <input id="em-location" list="em-loc-list" placeholder="${Lang.t("meeting_location")}">
+          <datalist id="em-loc-list">${Meetings.locationOptionsHtml()}</datalist>
+          ${Meetings.pickerHtml("em")}
+        </div>
+      </div>
       <div class="field"><label>${Lang.t("attachments")}</label><input type="file" id="in-files" multiple></div>
       <button class="primary" onclick="Log.submit()">${Lang.t("save")}</button>
       <div id="form-error" class="error-text"></div>
     `;
+    Meetings.refreshPicker("em");
+  },
+
+  onKindChange() {
+    const isInc = document.getElementById("in-kind").value === "hendelse";
+    document.getElementById("in-meeting-wrap").classList.toggle("hidden", !isInc);
+    if (!isInc) {
+      document.getElementById("in-create-meeting").checked = false;
+      this.toggleMeetingFields();
+    }
+  },
+
+  toggleMeetingFields() {
+    const on = document.getElementById("in-create-meeting").checked;
+    document.getElementById("in-meeting-fields").classList.toggle("hidden", !on);
+    if (on) {
+      const t = document.getElementById("em-title");
+      if (!t.value) t.value = "Krisemøte";
+      const tm = document.getElementById("em-time");
+      if (!tm.value) tm.value = Meetings._defaultTimeLocal();
+      const ml = document.getElementById("em-location");
+      if (ml && !ml.value) ml.value = document.getElementById("in-location")?.value && document.getElementById("in-location").value !== "__custom"
+        ? document.getElementById("in-location").value : (document.getElementById("in-location-custom")?.value || "");
+    }
   },
 
   async submit() {
@@ -205,6 +244,18 @@ window.Log = {
     if (!description) {
       document.getElementById("form-error").textContent = "Beskrivelse må fylles ut.";
       return;
+    }
+    const wantMeeting = kind === "hendelse" && document.getElementById("in-create-meeting")?.checked;
+    let meetingTitle = "", meetingIso = null, meetingLocation = "";
+    if (wantMeeting) {
+      meetingTitle = document.getElementById("em-title").value.trim();
+      meetingLocation = (location || "").trim();
+      const tv = document.getElementById("em-time").value;
+      meetingIso = tv ? new Date(tv).toISOString() : null;
+      if (!meetingTitle || !meetingIso) {
+        document.getElementById("form-error").textContent = Lang.t("meeting_missing_fields");
+        return;
+      }
     }
     // Fritekst-lokasjon lagres automatisk for arrangementet, slik at den dukker opp i
     // nedtrekksmenyen neste gang - loggeren slipper å skrive samme sted på nytt.
@@ -238,10 +289,23 @@ window.Log = {
     const files = document.getElementById("in-files").files;
     if (files.length) await this.uploadAttachments(data.id, files);
 
+    let meetingError = null;
+    if (wantMeeting) {
+      const res = await Meetings.create({
+        title: meetingTitle, scheduledAtIso: meetingIso,
+        participants: Meetings.getParticipants("em"), sourceEntry: data,
+        location: document.getElementById("em-location").value.trim() || meetingLocation,
+      });
+      meetingError = res.error ? (res.error.message || String(res.error)) : null;
+      await Meetings.load(); Meetings._render();
+      Meetings.resetPicker("em");
+    }
+
     document.getElementById("entry-form").reset?.();
     this.capturedGps = null;
     this._renderForm();
     await this.refresh();
+    if (meetingError) document.getElementById("form-error").textContent = "Hendelsen er lagret, men møtet feilet: " + meetingError;
     Auth.logActivity("Ny loggføring", `${data.display_id} – ${this.CATEGORY_LABELS[data.category] || data.category}`);
   },
 
@@ -478,7 +542,8 @@ window.Log = {
               </div>` : ""}
           </div>` : ""}
         <div class="actions">
-          ${canWrite && this.canEdit(e) ? `<button class="ghost" onclick="Log.startEdit('${e.id}')">${Lang.t("edit")}</button>` : ""}
+          ${e.category === "Mote" && e.meeting_id && e.meeting_phase === "avsluttet" ? `<button class="ghost" onclick="Meetings.showMinutes('${e.meeting_id}')">📄 ${Lang.t("meeting_read_minutes")}</button>` : ""}
+          ${canWrite && e.category !== "Mote" && this.canEdit(e) ? `<button class="ghost" onclick="Log.startEdit('${e.id}')">${Lang.t("edit")}</button>` : ""}
           ${canWrite && e.entry_kind === "hendelse" && e.status === "pagaende" ? `<button class="ghost" onclick="Log.markClosed('${e.id}')">${Lang.t("mark_closed")}</button>` : ""}
         </div>
       </div>

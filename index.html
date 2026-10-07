@@ -63,15 +63,22 @@
         document.getElementById("login-error").textContent = Lang.t("account_deactivated");
         return;
       }
-      Auth.logActivity("Logget inn");
+      // Må vente på at skrivingen til aktivitetsloggen faktisk er ferdig før vi
+      // navigerer bort - ellers kan nettleseren kansellere nettverkskallet midt i,
+      // og "Logget inn"-raden uteblir (spesielt på trege tilkoblinger).
+      await Auth.logActivity("Logget inn");
       window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
     }
 
-    // Hvis allerede innlogget, send videre
+    // Hvis allerede innlogget (f.eks. en lagret økt fra tidligere), send videre -
+    // men logg det som en innlogging likevel, siden dette reelt sett er starten
+    // på en ny økt for brukeren (uten dette forsvinner "Logget inn"-raden for
+    // alle som ikke må taste brukernavn/passord på nytt).
     (async () => {
       const { data } = await sb.auth.getSession();
       if (data.session) {
         await Auth.loadProfile();
+        await Auth.logActivity("Logget inn");
         window.location.href = Auth.isAdmin() ? "admin.html" : "app.html";
       }
     })();
